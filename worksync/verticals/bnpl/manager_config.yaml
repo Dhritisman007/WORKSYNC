@@ -1,0 +1,7 @@
+# Credit card/BNPL vertical's Manager Agent thresholds. Precedence logic
+# itself (core/agents/manager.py) is identical to every other vertical.
+grey_band_lower: 0.35
+grey_band_upper: 0.65
+high_confidence_bands:
+  - high
+escalate_on_soft_flag: false

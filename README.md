@@ -45,6 +45,11 @@ pytest worksync/tests -q
   (including forced sanctions/PEP hits) run end to end through the
   unchanged core agents. See `worksync/verticals/kyc_aml/README.md` and
   `worksync/docs/kyc_aml_model_report.md`.
+- Phase 4b (credit card/BNPL vertical): Kaggle Credit Card Fraud Detection
+  dataset, calibrated LightGBM (+ XGBoost baseline) with SHAP, an
+  amount-only ruleset (no invented meaning for anonymized PCA features),
+  and 20 sample cases (including 2 forced known-fraud rows) run end to end.
+  See `worksync/verticals/bnpl/README.md` and `worksync/docs/bnpl_model_report.md`.
 
 See `CHANGELOG.md` for the reasoning behind each decision.
 

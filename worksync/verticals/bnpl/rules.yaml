@@ -1,0 +1,43 @@
+# Illustrative checks for the credit card/BNPL vertical. Every rule is
+# `verified: false` and cites only general guidance, no invented clause
+# numbers — same convention as the loan and KYC/AML rulesets.
+#
+# Only `amount` is used here (not `hour_of_day` or any `v*` column): the
+# dataset's V1-V28 are PCA components with no recoverable business meaning,
+# so writing a "rule" against them would be inventing a justification for
+# an opaque number — the model (which is allowed to be opaque) handles
+# those signals instead; the rules engine only touches interpretable fields.
+version: "0.1.0"
+vertical: bnpl
+
+rules:
+  - id: BNPL-AMOUNT-001
+    description: >
+      Transaction amount exceeds 10,000 — should not be auto-approved
+      regardless of the model's score.
+    source_regulation: >
+      RBI digital lending guidance on responsible-lending limits for
+      unsecured/BNPL-style credit (general reference — specific clause not
+      yet verified against the current Master Directions)
+    severity: hard
+    verified: false
+    action: escalate
+    condition:
+      field: amount
+      op: gt
+      value: 10000
+
+  - id: BNPL-AMOUNT-002
+    description: >
+      Transaction amount exceeds 2,000 — large enough to warrant a note in
+      the decision trail even if not auto-blocking.
+    source_regulation: >
+      General large-transaction monitoring practice (illustrative only —
+      not tied to a specific RBI/PMLA clause; not yet verified)
+    severity: soft
+    verified: false
+    action: annotate
+    condition:
+      field: amount
+      op: gt
+      value: 2000

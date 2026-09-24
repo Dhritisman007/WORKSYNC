@@ -174,3 +174,39 @@ Design decisions and their reasons, logged as we go, for the project report.
   correct reject/escalate outcomes for the forced hits, `verify_chain()`
   passed, `replay()` reproduced the logged decision.
 - **No `core/` changes were needed.**
+
+## Phase 4b — Credit card/BNPL vertical (2026-09-24)
+
+- **Dataset: Kaggle `mlg-ulb/creditcardfraud`** (chosen with the user rather
+  than assumed) — 284,807 real anonymized European transactions, 492 frauds.
+  Unlike loan and KYC/AML, this dataset's 28 features (`V1..V28`) are PCA
+  components with no recoverable human-readable meaning (anonymized by the
+  dataset's publisher, not by us).
+- **`rules.yaml` for this vertical only covers `amount`.** Writing a rule
+  against `V14` or any other PCA component would mean fabricating a
+  business justification for an opaque number — that's exactly the kind of
+  invented-authority problem the brief's "never invent clause numbers"
+  instruction is guarding against, just one level removed (inventing rule
+  *meaning* rather than a citation). The model is allowed to use those
+  columns opaquely; the compliance rules engine is not.
+- **No velocity-style feature, unlike KYC/AML** — this dataset has no
+  customer/session identifier, so a cross-transaction feature isn't
+  supportable by the data. Left out rather than fabricated an identifier.
+- **Preprocessor for this vertical is numeric-only** (no categorical
+  `ColumnTransformer` branch) — first vertical without any categorical
+  features, confirms the shared model-plumbing pattern degrades gracefully
+  rather than assuming every vertical has categoricals.
+- **Metrics are meaningfully stronger than loan/KYC-AML**: calibrated
+  LightGBM AUC 0.9357, KS 0.8433, Brier 0.0009. Expected — this is a real,
+  cleanly-labeled fraud dataset with an unambiguous outcome, unlike
+  KYC/AML's synthetic label or loan's inherently noisier credit-risk task.
+- **20 sample cases (2 forced known-fraud rows) ran end to end**: one fraud
+  case auto-rejected (prob 0.90, high confidence), the other escalated
+  (prob 0.64, low confidence — correctly not auto-decided at that
+  confidence level). `verify_chain()` passed, `replay()` reproduced the
+  logged decision.
+- **No `core/` changes were needed** — fourth vertical, same unchanged
+  Analyst/Compliance/Manager/Audit agents, now proven across a real
+  imbalanced-classification dataset with zero categorical features and no
+  entity identifier, the most structurally different of the three real/
+  synthetic datasets used so far.

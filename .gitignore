@@ -5,4 +5,5 @@ __pycache__/
 worksync/data/raw/**/*.csv
 worksync/data/processed/**/*.csv
 worksync/logs/audit/*.jsonl
+worksync/verticals/*/model/artifacts/
 .DS_Store

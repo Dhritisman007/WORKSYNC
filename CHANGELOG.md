@@ -79,3 +79,58 @@ Design decisions and their reasons, logged as we go, for the project report.
   prev_hash)`**, genesis `prev_hash` is 64 zero characters. Verified in
   `test_audit_agent.py` that both tampering with an old entry's payload and
   deleting an entry are detected (chain breaks at the first bad index).
+
+## Phase 3 — Loan reference vertical (2026-09-24)
+
+- **`adapter.engineer_features()` is the single source of truth for feature
+  engineering**, called by both `adapter.row_to_case()` (inference) and
+  `model/train.py` (training matrix), to rule out train/serve skew by
+  construction rather than by convention.
+- **Feature set is a curated ~25-feature subset of the raw 122 Home Credit
+  columns** plus standard ratios (credit-to-income, annuity-to-income,
+  goods-to-credit, mean of the three `EXT_SOURCE_*` bureau-style scores) and
+  age/tenure in years. No joins against `bureau.csv`,
+  `previous_application.csv`, etc. — per the brief's "keep feature
+  engineering simple" instruction. `DAYS_EMPLOYED`'s known 365243 sentinel
+  (Home Credit's own placeholder for "not currently employed") is mapped to
+  `None`, not treated as a real value.
+- **Calibration: `CalibratedClassifierCV(FrozenEstimator(lgbm), method=
+  "isotonic")` fit on a held-out slice of the training split (not the test
+  split).** The brief's originally-planned `cv="prefit"` API was removed in
+  scikit-learn ≥1.6 (installed: 1.9.1) — `FrozenEstimator` is its
+  replacement. Bumped `requirements.txt` to `scikit-learn>=1.6` accordingly.
+  This is a dependency-API accommodation, not a scope change.
+- **XGBoost is trained and reported on, never used for scoring** — matches
+  the brief's "LightGBM as primary, XGBoost as comparison baseline."
+- **SHAP explains the base (uncalibrated) LightGBM model**, not the
+  calibrated wrapper — `shap.TreeExplainer` needs a tree model directly, and
+  calibration only rescales the probability, so the base model's feature
+  attributions are still a faithful explanation of the score. One-hot
+  columns from a single categorical feature (e.g. `income_type`) are summed
+  back into one attribution under the original column name before taking
+  the top 5, so the report shows human-readable feature names, not encoded
+  dummy-column names.
+- **`rules.yaml`: every rule is `verified: false`, and `source_regulation`
+  cites only general guidance documents, never a specific clause/circular
+  number** — per the brief's explicit "never invent circular or clause
+  numbers" instruction. These 5 rules are illustrative starting points, not
+  a compliance-verified ruleset; a team member must check each against the
+  current RBI Master Directions before this vertical is trusted for
+  anything beyond the class demo.
+- **`manager_config.yaml`'s grey band (0.35–0.65) is deliberately wider than
+  the 0.5 reporting threshold** used for the model report's confusion
+  matrix — auto-deciding a loan should require a clearly one-sided score,
+  not a bare majority; most borderline cases are meant to escalate.
+- **Trained model artifacts (`model/artifacts/*.joblib`) are gitignored**,
+  not committed — they're fully reproducible from `train.py` given the
+  (also gitignored, must be downloaded from Kaggle) CSV and the fixed seed
+  (42). Keeps the repo free of binary blobs and avoids the artifacts
+  silently going stale relative to the training code.
+- **20 real sample cases ran end to end** via
+  `verticals/loan/run_samples.py`: decisions, reason codes and confidence
+  bands all populated correctly, `verify_chain()` passed, and `replay()`
+  reproduced the logged decision. See `docs/loan_model_report.md` for the
+  actual AUC/KS/Brier numbers from this run (not estimated).
+- **No `core/` changes were needed** to add this vertical — confirms the
+  Phase 2 contracts hold for a real model + real rules, not just the dummy
+  fixture.

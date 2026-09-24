@@ -1,0 +1,15 @@
+# Loan vertical's Manager Agent thresholds. The Manager Agent's precedence
+# logic itself (core/agents/manager.py) is fixed and identical across
+# verticals — this file only tunes where the grey band sits and what counts
+# as high confidence for THIS vertical's model.
+#
+# Deliberately conservative: the grey band (0.35-0.65) is wide relative to
+# the 0.5 reporting threshold used in docs/loan_model_report.md, because
+# auto-deciding a loan should require the model to be clearly one side or
+# the other, not just barely past a coin-flip. Most borderline cases should
+# reach a human reviewer rather than being auto-decided.
+grey_band_lower: 0.35
+grey_band_upper: 0.65
+high_confidence_bands:
+  - high
+escalate_on_soft_flag: false

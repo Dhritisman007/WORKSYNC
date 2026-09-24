@@ -1,0 +1,96 @@
+# Illustrative RBI digital-lending / responsible-lending checks for the loan
+# vertical. Every rule is `verified: false` and cites only general guidance
+# documents, never a specific clause or circular number — per the brief,
+# clause numbers must never be invented by AI and are the team's job to
+# verify against the current RBI Master Directions before any rule here is
+# trusted. Conditions reference the engineered features from
+# verticals/loan/adapter.py (see NUMERIC_FEATURES / CATEGORICAL_FEATURES /
+# BOOLEAN_FEATURES there for what's available).
+version: "0.1.0"
+vertical: loan
+
+rules:
+  - id: LOAN-KYC-001
+    description: >
+      Insufficient data to assess creditworthiness (no credit-bureau
+      external score and no stated occupation) — should not be auto-decided
+      either way.
+    source_regulation: >
+      RBI digital lending guidance on assessing creditworthiness before
+      extending credit (general reference — specific clause not yet
+      verified against the current Master Directions)
+    severity: hard
+    verified: false
+    action: escalate
+    condition:
+      all:
+        - not:
+            field: ext_source_mean
+            op: exists
+        - not:
+            field: occupation_type
+            op: exists
+
+  - id: LOAN-DTI-001
+    description: >
+      Annuity-to-income ratio exceeds 0.6 — debt burden appears
+      unsustainable relative to income.
+    source_regulation: >
+      RBI Fair Practices Code / responsible-lending expectation that credit
+      extended should be commensurate with repayment capacity (general
+      reference — specific clause not yet verified)
+    severity: hard
+    verified: false
+    action: reject
+    condition:
+      field: annuity_income_ratio
+      op: gt
+      value: 0.6
+
+  - id: LOAN-AGE-001
+    description: >
+      Applicant is under 21 — extra scrutiny expected before extending
+      unsecured digital credit to a very young applicant.
+    source_regulation: >
+      RBI digital lending guidance on responsible lending to first-time /
+      young borrowers (general reference — specific clause not yet
+      verified)
+    severity: hard
+    verified: false
+    action: escalate
+    condition:
+      field: age_years
+      op: lt
+      value: 21
+
+  - id: LOAN-LEV-001
+    description: >
+      Credit-to-income ratio exceeds 8x — applicant appears highly
+      leveraged relative to stated income; worth a human look even if the
+      model score alone wouldn't flag it.
+    source_regulation: >
+      General over-leverage / responsible-lending consideration (illustrative
+      only — not tied to a specific RBI clause; not yet verified)
+    severity: soft
+    verified: false
+    action: annotate
+    condition:
+      field: credit_income_ratio
+      op: gt
+      value: 8
+
+  - id: LOAN-DOC-001
+    description: >
+      Standard supporting identity document (FLAG_DOCUMENT_3 in the source
+      data) was not provided with the application.
+    source_regulation: >
+      RBI KYC Master Direction requirement to hold valid identity
+      documentation on file (general reference — specific clause not yet
+      verified)
+    severity: soft
+    verified: false
+    action: annotate
+    condition:
+      field: doc3_provided
+      op: eq
+      value: false

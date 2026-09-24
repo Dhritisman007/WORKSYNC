@@ -35,5 +35,12 @@ pytest worksync/tests -q
   `verify_chain()` and `replay()`), config-driven Manager Agent, the
   orchestrator, and a dummy-vertical pipeline test proving the pipeline runs
   end to end and that audit-log tampering is detected.
+- Phase 3 (loan reference vertical): Home Credit adapter, calibrated
+  LightGBM (+ XGBoost baseline) with SHAP, illustrative unverified RBI/KYC
+  rules, decision bands, and 20 real sample cases run end to end. See
+  `worksync/verticals/loan/README.md` and `worksync/docs/loan_model_report.md`.
 
 See `CHANGELOG.md` for the reasoning behind each decision.
+
+Model artifacts and raw data are gitignored (see `worksync/verticals/loan/README.md`
+for how to regenerate them).

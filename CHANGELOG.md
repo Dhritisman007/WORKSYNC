@@ -210,3 +210,37 @@ Design decisions and their reasons, logged as we go, for the project report.
   imbalanced-classification dataset with zero categorical features and no
   entity identifier, the most structurally different of the three real/
   synthetic datasets used so far.
+
+## Phase 4c — Insurance claims vertical (2026-09-24)
+
+- **Dataset: Kaggle `shivamb/vehicle-claim-fraud-detection`** (chosen with
+  the user) — 15,420 claims, `FraudFound_P` target, ~6% positive rate.
+  Interpretable columns, unlike BNPL's anonymized PCA features.
+- **Several source columns are pre-binned strings, not raw numbers** (e.g.
+  `PastNumberOfClaims`: "none"/"1"/"2 to 4"/"more than 4"). Each bucket is
+  mapped to a documented numeric midpoint (`adapter.py`'s `_*_MIDPOINT`
+  dicts) purely so `rules.yaml` can threshold on them the same way the
+  other verticals threshold on raw numbers. This is a lossy simplification
+  (a bucket loses its internal spread) — acceptable per "keep feature
+  engineering simple," and the model still also sees the raw bucket as a
+  category, so it isn't solely reliant on the midpoint.
+- **`rules.yaml`: early claim (< 8 days after policy start) is `hard`+
+  `escalate`** — this is one of the most well-established real insurance-
+  fraud heuristics (a claim filed almost immediately after coverage starts
+  is inherently suspicious), used here structurally the same way loan's
+  DTI rule or BNPL's amount rule are: a threshold on an interpretable
+  field, cited only generally, `verified: false`.
+- **`INS-NOEVIDENCE-001` is this project's first compound rule condition
+  in production use** (`all: [police_report_filed == false, witness_present
+  == false]`) — exercises the `all`/`any`/`not` combinators from Phase 2's
+  rule engine beyond the single-leaf conditions used so far.
+- **20 sample cases (2 forced known-fraud rows) ran end to end. One forced
+  fraud case was auto-approved** (low score, no hard flag triggered) — a
+  genuine false negative, left in the checkpoint report rather than
+  filtered out, since the point of this project is an honest decision-
+  support pipeline, not a claim that either the model or the rules catch
+  everything. `verify_chain()` passed, `replay()` reproduced the logged
+  decision for the last case run.
+- **No `core/` changes were needed** — all four verticals now built, same
+  unchanged Analyst/Compliance/Manager/Audit agents throughout. This is the
+  claim Phase 5's structural-parity test formalizes next.

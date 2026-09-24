@@ -1,0 +1,88 @@
+# Illustrative IRDAI-style claims checks. Every rule is `verified: false`
+# and cites only general guidance documents, never a specific clause or
+# circular number — per the brief, no invented citations. Conditions
+# reference the engineered features from verticals/insurance/adapter.py,
+# including the bucket-to-midpoint numeric fields documented there.
+version: "0.1.0"
+vertical: insurance
+
+rules:
+  - id: INS-TIMING-001
+    description: >
+      Accident occurred within the first week of the policy being active —
+      a well-known claims-fraud red flag that should not be auto-approved
+      regardless of the model's score.
+    source_regulation: >
+      IRDAI guidance on scrutinising early claims for potential fraud
+      indicators (general reference — specific clause not yet verified
+      against the current IRDAI Master Circular)
+    severity: hard
+    verified: false
+    action: escalate
+    condition:
+      field: days_policy_to_accident
+      op: lt
+      value: 8
+
+  - id: INS-HIGHVALUE-001
+    description: >
+      Vehicle price bucket is "more than 69000" — the highest-value claim
+      bracket in this dataset should always get a human look.
+    source_regulation: >
+      General high-value-claim review practice (illustrative only — not
+      tied to a specific IRDAI clause; not yet verified)
+    severity: hard
+    verified: false
+    action: escalate
+    condition:
+      field: vehicle_price_midpoint
+      op: gte
+      value: 80000
+
+  - id: INS-ADDRESS-001
+    description: >
+      Policyholder's address was changed shortly (within 6 months) before
+      the claim — a recognized fraud indicator.
+    source_regulation: >
+      General claims-fraud screening practice (illustrative only — not
+      tied to a specific IRDAI clause; not yet verified)
+    severity: soft
+    verified: false
+    action: annotate
+    condition:
+      field: address_change_recency_years
+      op: lt
+      value: 0.5
+
+  - id: INS-PASTCLAIMS-001
+    description: >
+      Policyholder has more than 4 past claims — worth a note even if not
+      independently disqualifying.
+    source_regulation: >
+      General frequent-claimant monitoring practice (illustrative only —
+      not tied to a specific IRDAI clause; not yet verified)
+    severity: soft
+    verified: false
+    action: annotate
+    condition:
+      field: past_claims_count
+      op: gt
+      value: 4
+
+  - id: INS-NOEVIDENCE-001
+    description: >
+      Neither a police report nor a witness is on record for this claim.
+    source_regulation: >
+      General claims-documentation completeness practice (illustrative
+      only — not tied to a specific IRDAI clause; not yet verified)
+    severity: soft
+    verified: false
+    action: annotate
+    condition:
+      all:
+        - field: police_report_filed
+          op: eq
+          value: false
+        - field: witness_present
+          op: eq
+          value: false

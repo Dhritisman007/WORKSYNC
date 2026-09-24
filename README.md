@@ -50,6 +50,14 @@ pytest worksync/tests -q
   amount-only ruleset (no invented meaning for anonymized PCA features),
   and 20 sample cases (including 2 forced known-fraud rows) run end to end.
   See `worksync/verticals/bnpl/README.md` and `worksync/docs/bnpl_model_report.md`.
+- Phase 4c (insurance claims vertical): Kaggle Vehicle Insurance Claim
+  Fraud Detection dataset, calibrated LightGBM (+ XGBoost baseline) with
+  SHAP, 5 illustrative unverified IRDAI-style rules (early-claim timing,
+  high value, address change, past claims, missing evidence), and 20
+  sample cases (including 2 forced known-fraud rows) run end to end. All
+  four BFSI verticals are now built on the same unchanged core agents. See
+  `worksync/verticals/insurance/README.md` and
+  `worksync/docs/insurance_model_report.md`.
 
 See `CHANGELOG.md` for the reasoning behind each decision.
 

@@ -1,0 +1,24 @@
+version: "0.1.0"
+vertical: dummy
+rules:
+  - id: DUMMY-HARD-001
+    description: Entity appears on the dummy watchlist
+    source_regulation: N/A (fixture rule for Phase 2 pipeline test, not a real regulation)
+    severity: hard
+    verified: false
+    action: reject
+    condition:
+      field: on_watchlist
+      op: eq
+      value: true
+
+  - id: DUMMY-SOFT-001
+    description: Transaction amount above the dummy soft-review threshold
+    source_regulation: N/A (fixture rule for Phase 2 pipeline test, not a real regulation)
+    severity: soft
+    verified: false
+    action: annotate
+    condition:
+      field: amount
+      op: gt
+      value: 100000

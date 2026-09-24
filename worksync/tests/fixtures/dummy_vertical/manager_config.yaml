@@ -1,0 +1,5 @@
+grey_band_lower: 0.4
+grey_band_upper: 0.6
+high_confidence_bands:
+  - high
+escalate_on_soft_flag: false

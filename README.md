@@ -28,6 +28,12 @@ pytest worksync/tests -q
 
 ## Status
 
-Phase 1 (lock the contract) complete: schemas, JSON Schema exports, the
-Manager authority doc (default proposal, pending mentor sign-off), and the
-`BaseAgent` interface. See `CHANGELOG.md`.
+- Phase 1 (lock the contract): schemas, JSON Schema exports, the Manager
+  authority doc (default proposal, pending mentor sign-off), and the
+  `BaseAgent` interface.
+- Phase 2 (shared core): YAML rule engine, hash-chained Audit Agent (with
+  `verify_chain()` and `replay()`), config-driven Manager Agent, the
+  orchestrator, and a dummy-vertical pipeline test proving the pipeline runs
+  end to end and that audit-log tampering is detected.
+
+See `CHANGELOG.md` for the reasoning behind each decision.

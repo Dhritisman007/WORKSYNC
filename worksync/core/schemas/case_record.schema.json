@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "DocumentRef": {
+      "additionalProperties": false,
+      "description": "Metadata placeholder for a document/image input. OCR is a stretch goal;\nfor now the document is represented by metadata only.",
+      "properties": {
+        "doc_type": {
+          "title": "Doc Type",
+          "type": "string"
+        },
+        "verified": {
+          "default": false,
+          "title": "Verified",
+          "type": "boolean"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference"
+        }
+      },
+      "required": [
+        "doc_type"
+      ],
+      "title": "DocumentRef",
+      "type": "object"
+    },
+    "Vertical": {
+      "enum": [
+        "loan",
+        "kyc_aml",
+        "bnpl",
+        "insurance",
+        "dummy"
+      ],
+      "title": "Vertical",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The versioned contract every vertical adapter must produce.\n\nEvery vertical must fit into this without adding top-level fields.\nVertical-specific data goes inside `features`.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "vertical": {
+      "$ref": "#/$defs/Vertical"
+    },
+    "entity_id": {
+      "title": "Entity Id",
+      "type": "string"
+    },
+    "submitted_at": {
+      "format": "date-time",
+      "title": "Submitted At",
+      "type": "string"
+    },
+    "features": {
+      "additionalProperties": true,
+      "title": "Features",
+      "type": "object"
+    },
+    "documents": {
+      "items": {
+        "$ref": "#/$defs/DocumentRef"
+      },
+      "title": "Documents",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "vertical",
+    "entity_id"
+  ],
+  "title": "CaseRecord",
+  "type": "object"
+}

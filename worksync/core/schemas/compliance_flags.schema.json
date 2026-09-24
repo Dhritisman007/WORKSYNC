@@ -1,0 +1,90 @@
+{
+  "$defs": {
+    "ComplianceFlag": {
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "source_regulation": {
+          "title": "Source Regulation",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "verified": {
+          "default": false,
+          "title": "Verified",
+          "type": "boolean"
+        },
+        "triggered": {
+          "default": true,
+          "title": "Triggered",
+          "type": "boolean"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        }
+      },
+      "required": [
+        "rule_id",
+        "description",
+        "source_regulation",
+        "severity",
+        "action"
+      ],
+      "title": "ComplianceFlag",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "hard",
+        "soft",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "ruleset_version": {
+      "title": "Ruleset Version",
+      "type": "string"
+    },
+    "flags": {
+      "items": {
+        "$ref": "#/$defs/ComplianceFlag"
+      },
+      "title": "Flags",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "ruleset_version"
+  ],
+  "title": "ComplianceFlags",
+  "type": "object"
+}

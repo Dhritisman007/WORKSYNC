@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "DecisionOutcome": {
+      "enum": [
+        "approve",
+        "reject",
+        "escalate"
+      ],
+      "title": "DecisionOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/DecisionOutcome"
+    },
+    "reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "risk_probability": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Risk Probability"
+    },
+    "confidence_band": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence Band"
+    },
+    "hard_flags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Hard Flags",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "outcome"
+  ],
+  "title": "Decision",
+  "type": "object"
+}

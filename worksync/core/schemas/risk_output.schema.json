@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "ShapAttribution": {
+      "additionalProperties": false,
+      "properties": {
+        "feature": {
+          "title": "Feature",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "contribution": {
+          "title": "Contribution",
+          "type": "number"
+        }
+      },
+      "required": [
+        "feature",
+        "value",
+        "contribution"
+      ],
+      "title": "ShapAttribution",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "model_name": {
+      "title": "Model Name",
+      "type": "string"
+    },
+    "model_version": {
+      "title": "Model Version",
+      "type": "string"
+    },
+    "risk_probability": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Risk Probability",
+      "type": "number"
+    },
+    "confidence_band": {
+      "title": "Confidence Band",
+      "type": "string"
+    },
+    "top_attributions": {
+      "items": {
+        "$ref": "#/$defs/ShapAttribution"
+      },
+      "title": "Top Attributions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "case_id",
+    "model_name",
+    "model_version",
+    "risk_probability",
+    "confidence_band"
+  ],
+  "title": "RiskOutput",
+  "type": "object"
+}

@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+worksync/data/raw/**/*.csv
+worksync/data/processed/**/*.csv
+worksync/logs/audit/*.jsonl
+.DS_Store

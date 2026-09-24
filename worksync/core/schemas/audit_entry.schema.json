@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "AgentName": {
+      "enum": [
+        "ingestion",
+        "analyst",
+        "compliance",
+        "manager",
+        "audit"
+      ],
+      "title": "AgentName",
+      "type": "string"
+    },
+    "Vertical": {
+      "enum": [
+        "loan",
+        "kyc_aml",
+        "bnpl",
+        "insurance",
+        "dummy"
+      ],
+      "title": "Vertical",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "vertical": {
+      "$ref": "#/$defs/Vertical"
+    },
+    "agent": {
+      "$ref": "#/$defs/AgentName"
+    },
+    "timestamp": {
+      "format": "date-time",
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "model_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Version"
+    },
+    "ruleset_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ruleset Version"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "title": "Payload",
+      "type": "object"
+    },
+    "prev_hash": {
+      "title": "Prev Hash",
+      "type": "string"
+    },
+    "entry_hash": {
+      "title": "Entry Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "vertical",
+    "agent",
+    "timestamp",
+    "payload",
+    "prev_hash",
+    "entry_hash"
+  ],
+  "title": "AuditEntry",
+  "type": "object"
+}

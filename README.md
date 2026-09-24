@@ -39,6 +39,12 @@ pytest worksync/tests -q
   LightGBM (+ XGBoost baseline) with SHAP, illustrative unverified RBI/KYC
   rules, decision bands, and 20 real sample cases run end to end. See
   `worksync/verticals/loan/README.md` and `worksync/docs/loan_model_report.md`.
+- Phase 4a (KYC/AML vertical): seeded synthetic identity + PEP/sanctions
+  data, calibrated LightGBM (+ XGBoost baseline) with SHAP, illustrative
+  unverified AML/KYC rules (sanctions/PEP hard flags), and 20 sample cases
+  (including forced sanctions/PEP hits) run end to end through the
+  unchanged core agents. See `worksync/verticals/kyc_aml/README.md` and
+  `worksync/docs/kyc_aml_model_report.md`.
 
 See `CHANGELOG.md` for the reasoning behind each decision.
 

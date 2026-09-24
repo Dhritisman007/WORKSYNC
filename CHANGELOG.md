@@ -134,3 +134,43 @@ Design decisions and their reasons, logged as we go, for the project report.
 - **No `core/` changes were needed** to add this vertical — confirms the
   Phase 2 contracts hold for a real model + real rules, not just the dummy
   fixture.
+
+## Phase 4a — KYC/AML vertical (2026-09-24)
+
+- **Data is entirely synthetic** (`data_gen.py`, seed `4242`): fabricated
+  applicant names, PEP list, sanctions list, and a `high_risk_label` target
+  that's a documented function of the same risk signals plus noise — not a
+  real fraud outcome. This vertical has no public reference dataset (unlike
+  loan), so per the brief this had to be generated, not downloaded; kept
+  deterministic and tested for it (`test_data_generator_is_deterministic`)
+  so replay/audit stay meaningful across runs.
+- **A small fraction of synthetic applicants are deliberately given a name
+  that matches the PEP/sanctions lists** (2% / 1%), rather than relying on
+  pure chance, so the hard-flag rules have real hits to exercise in tests
+  and the sample run — `run_samples.py` forces at least one of each into
+  its sample for the same reason.
+- **Same LightGBM+XGBoost+SHAP model shape as the loan vertical**, reusing
+  the identical calibration approach (`FrozenEstimator` + isotonic,
+  prefit on a held-out training slice) — deliberately not inventing a new
+  modeling pattern per vertical, since the whole point is that only the
+  adapter/model/rules/config differ, not the approach.
+- **`rules.yaml`: sanctions match is `hard`+`reject`, PEP match is
+  `hard`+`escalate`** (enhanced due diligence, not automatic rejection —
+  a PEP isn't necessarily disqualifying, just requires a human look). Both
+  still `verified: false` with only general-guidance citations, same as
+  loan's rules.
+- **The model is intentionally somewhat redundant with the hard rules** —
+  sanctions/PEP hits always override the score via the Manager's fixed
+  precedence. The model's actual job is catching residual risk in cases
+  that pass screening but still look weak (poor document quality, high
+  device risk, velocity spikes). Documented in
+  `verticals/kyc_aml/README.md` so this isn't mistaken for a design flaw.
+- **AUC ~0.66–0.68 on the synthetic test split** — lower than loan's 0.756,
+  expected given a smaller synthetic dataset (5,000 rows vs. 307,511) with
+  a noisier, non-empirical label. Documented in
+  `docs/kyc_aml_model_report.md` as a pipeline-correctness check, not a
+  real-world performance claim.
+- **20 sample cases (including forced sanctions/PEP hits) ran end to end**:
+  correct reject/escalate outcomes for the forced hits, `verify_chain()`
+  passed, `replay()` reproduced the logged decision.
+- **No `core/` changes were needed.**

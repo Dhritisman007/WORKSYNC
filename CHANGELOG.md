@@ -244,3 +244,48 @@ Design decisions and their reasons, logged as we go, for the project report.
 - **No `core/` changes were needed** — all four verticals now built, same
   unchanged Analyst/Compliance/Manager/Audit agents throughout. This is the
   claim Phase 5's structural-parity test formalizes next.
+
+## Phase 5 — Structural parity and demo (2026-09-24)
+
+- **`Orchestrator` gained `run_case_with_detail()` returning a `CaseResult`
+  (risk + compliance + decision), alongside the existing `run_case()`
+  (decision only).** This is a `core/` change, but an additive,
+  vertical-agnostic one — needed so the Streamlit demo can show the
+  intermediate risk score and compliance flags, not just the final
+  decision. `run_case()` is now a one-line wrapper around it, so no
+  existing caller (tests, `run_samples.py`) needed to change.
+- **`tests/test_parity.py` checks `type(x) is <core class>`, not
+  `isinstance`** — deliberately stricter, to catch a hypothetical future
+  per-vertical subclass that would technically satisfy `isinstance` while
+  still being the kind of structural change the brief says must be a
+  stop-and-report moment.
+- **Found via the Streamlit app, not the test suite: `pandas.DataFrame
+  .iloc[i]` can return raw `numpy.bool`/`numpy.int64` scalars for some
+  columns, where `.iterrows()` (used everywhere in the existing test
+  suite) happens to box them to native Python types first.**
+  `CaseRecord.model_dump(mode="json")` can't serialize a bare numpy scalar,
+  so this crashed the demo app on the loan vertical's `doc3_provided`
+  field (`FLAG_DOCUMENT_3 == 1`) the moment a case was built via `.iloc[]`
+  instead of `.iterrows()`. Fixed with explicit `bool(...)` casts in
+  `verticals/loan/adapter.py`; the other three verticals' adapters were
+  checked directly and were already safe. Added a regression test
+  (`test_case_from_iloc_row_access_has_no_numpy_leaks_and_serializes`) that
+  exercises `.iloc[]` specifically, since the existing tests' exclusive use
+  of `.iterrows()` is exactly what let this ship unnoticed through 59
+  passing tests. This is the kind of bug that only surfaces once something
+  actually drives the pipeline from outside the test suite — worth noting
+  for the report as a reason the brief asked for a working demo, not just
+  tests.
+- **`docs/parity_report.md`**: what changed vs. what stayed the same per
+  vertical, the real model metrics side by side, and every cross-vertical
+  finding from Phases 2–5 in one place.
+- **`app/streamlit_app.py`**: vertical + case picker, case record, risk
+  score + confidence band, SHAP bar chart, compliance flags, decision with
+  reason codes, and an audit trail table with live `verify_chain()` status
+  and a `replay()` button. The only file in the project that imports all
+  four verticals by name (a `VERTICALS` registry) — expected, since
+  something has to know they all exist to offer a picker; everything the
+  registry wires up underneath is the same shared `core/` code.
+- **`docs/project_writeup.md`**: the project write-up tying architecture,
+  phase-by-phase outcomes, results and known limitations together for the
+  final report.

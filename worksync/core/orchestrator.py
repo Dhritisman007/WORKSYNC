@@ -5,11 +5,31 @@ the same orchestrator run all four BFSI verticals — and the dummy one.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from worksync.core.agents.audit import AuditLog
 from worksync.core.agents.analyst import AnalystAgent
 from worksync.core.agents.compliance import ComplianceAgent
 from worksync.core.agents.manager import ManagerAgent
-from worksync.core.schemas.models import AgentName, CaseRecord, Decision, Envelope
+from worksync.core.schemas.models import (
+    AgentName,
+    CaseRecord,
+    ComplianceFlags,
+    Decision,
+    Envelope,
+    RiskOutput,
+)
+
+
+@dataclass
+class CaseResult:
+    """Everything one case produced — used by the Phase 5 demo app to show
+    intermediate steps. `run_case()` only needs the final `decision`, so it
+    stays the simple return type for everyone else (tests, run_samples.py)."""
+
+    risk: RiskOutput
+    compliance: ComplianceFlags
+    decision: Decision
 
 
 class Orchestrator:
@@ -28,6 +48,9 @@ class Orchestrator:
         self.model_version = model_version
 
     def run_case(self, case: CaseRecord) -> Decision:
+        return self.run_case_with_detail(case).decision
+
+    def run_case_with_detail(self, case: CaseRecord) -> CaseResult:
         case_payload = case.model_dump(mode="json")
 
         risk_env = self.analyst.handle(
@@ -63,4 +86,8 @@ class Orchestrator:
             {"input": manager_input, "output": manager_env.payload},
         )
 
-        return Decision.model_validate(manager_env.payload)
+        return CaseResult(
+            risk=RiskOutput.model_validate(risk_env.payload),
+            compliance=ComplianceFlags.model_validate(compliance_env.payload),
+            decision=Decision.model_validate(manager_env.payload),
+        )

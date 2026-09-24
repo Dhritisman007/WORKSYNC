@@ -74,6 +74,23 @@ def test_all_rules_are_unverified_pending_team_review():
     assert all(rule.verified is False for rule in ruleset.rules)
 
 
+@requires_data
+def test_case_from_iloc_row_access_has_no_numpy_leaks_and_serializes():
+    """Regression test: `.iloc[i]` (unlike `.iterrows()`, used elsewhere in
+    this test file) keeps numpy scalar types in the resulting Series for
+    some columns (e.g. an int64 column compared to a literal produces
+    numpy.bool, not bool). pydantic's `model_dump(mode="json")` can't
+    serialize that. The Streamlit demo app uses `.iloc[]` directly, so this
+    must hold for any row, not just ones reached via `.iterrows()`."""
+    import pandas as pd
+
+    df = pd.read_csv(DATA_PATH)
+    case = row_to_case(df.iloc[0])
+    for key, value in case.features.items():
+        assert type(value).__module__ != "numpy", f"{key} leaked a numpy type: {type(value)}"
+    case.model_dump(mode="json")  # must not raise
+
+
 @requires_artifacts
 @requires_data
 def test_risk_model_predicts_a_valid_output_for_a_real_row():

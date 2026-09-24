@@ -140,8 +140,8 @@ def engineer_features(row: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "contract_type": row.get("NAME_CONTRACT_TYPE"),
         "gender": row.get("CODE_GENDER"),
-        "own_car": row.get("FLAG_OWN_CAR") == "Y",
-        "own_realty": row.get("FLAG_OWN_REALTY") == "Y",
+        "own_car": bool(row.get("FLAG_OWN_CAR") == "Y"),
+        "own_realty": bool(row.get("FLAG_OWN_REALTY") == "Y"),
         "num_children": _num(row, "CNT_CHILDREN"),
         "income_total": income_total,
         "credit_amount": credit_amount,
@@ -165,7 +165,7 @@ def engineer_features(row: Mapping[str, Any]) -> dict[str, Any]:
         "annuity_income_ratio": annuity_income_ratio,
         "goods_credit_ratio": goods_credit_ratio,
         "bureau_inquiries_last_year": _num(row, "AMT_REQ_CREDIT_BUREAU_YEAR"),
-        "doc3_provided": row.get("FLAG_DOCUMENT_3") == 1,
+        "doc3_provided": bool(row.get("FLAG_DOCUMENT_3") == 1),
     }
 
 

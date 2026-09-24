@@ -26,6 +26,20 @@ pip install -r requirements.txt
 pytest worksync/tests -q
 ```
 
+## Demo
+
+```bash
+streamlit run worksync/app/streamlit_app.py
+```
+
+Pick a vertical and a case in the sidebar; needs that vertical's data +
+trained model artifacts in place first (see each `worksync/verticals/<x>/README.md`).
+
+## Project report
+
+See `worksync/docs/project_writeup.md` for the full write-up and
+`worksync/docs/parity_report.md` for the structural-parity evidence.
+
 ## Status
 
 - Phase 1 (lock the contract): schemas, JSON Schema exports, the Manager
@@ -58,6 +72,11 @@ pytest worksync/tests -q
   four BFSI verticals are now built on the same unchanged core agents. See
   `worksync/verticals/insurance/README.md` and
   `worksync/docs/insurance_model_report.md`.
+- Phase 5 (parity + demo): automated structural-parity test
+  (`tests/test_parity.py`, 9 tests) proving `core/` never branches per
+  vertical, `docs/parity_report.md`, a Streamlit demo app
+  (`app/streamlit_app.py`), and the project write-up
+  (`docs/project_writeup.md`). **Project complete — all 5 phases built.**
 
 See `CHANGELOG.md` for the reasoning behind each decision.
 

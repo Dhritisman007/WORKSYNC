@@ -47,6 +47,39 @@ CATEGORICAL_FEATURES = [
 BOOLEAN_FEATURES = ["police_report_filed", "witness_present"]
 ALL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES + BOOLEAN_FEATURES
 
+# Raw source columns (Kaggle fraud_oracle.csv) actually read in
+# engineer_features/row_to_case below — distinct from ALL_FEATURES since
+# several raw columns (e.g. "PastNumberOfClaims") map to a differently-named
+# engineered feature. Used by the demo app's upload-vertical detector.
+RAW_COLUMNS = [
+    "Age",
+    "DriverRating",
+    "Deductible",
+    "WeekOfMonth",
+    "WeekOfMonthClaimed",
+    "PastNumberOfClaims",
+    "Days_Policy_Accident",
+    "Days_Policy_Claim",
+    "AddressChange_Claim",
+    "VehiclePrice",
+    "AgeOfVehicle",
+    "AgeOfPolicyHolder",
+    "NumberOfSuppliments",
+    "NumberOfCars",
+    "Make",
+    "AccidentArea",
+    "Sex",
+    "MaritalStatus",
+    "Fault",
+    "PolicyType",
+    "VehicleCategory",
+    "BasePolicy",
+    "AgentType",
+    "PoliceReportFiled",
+    "WitnessPresent",
+    "PolicyNumber",
+]
+
 _PAST_CLAIMS_MIDPOINT = {"none": 0, "1": 1, "2 to 4": 3, "more than 4": 5}
 _DAYS_MIDPOINT = {"none": 0, "1 to 7": 4, "8 to 15": 11, "15 to 30": 22, "more than 30": 45}
 _ADDRESS_CHANGE_YEARS = {

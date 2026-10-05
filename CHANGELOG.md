@@ -2,6 +2,41 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — automatic vertical detection on upload (2026-10-06)
+
+- **Upload no longer requires picking the vertical first.** "Case source:
+  Upload a file" now shows a single file picker; `detect_vertical()`
+  compares the uploaded file's column headers against each vertical's
+  `RAW_COLUMNS` (added to the three adapters that didn't already have one —
+  `loan/adapter.py` already did) and scores each vertical by what fraction
+  of its expected schema is present. The detected vertical pre-selects a
+  normal override dropdown — never a silent, unconfirmable auto-route —
+  and a "column match scores" expander shows the scoring for all four so
+  the choice isn't a black box.
+- **This is a column-signature match, not a model.** No training, no
+  embeddings — exact header names are what every adapter already keys off
+  (`row.get("AMT_INCOME_TOTAL")` etc.), so a header match is a faithful
+  proxy for "will this adapter actually populate its features from this
+  file," and it's fully explainable (the match-score table *is* the
+  reasoning). Verified against all four `worksync/samples/*` files: 100%
+  coverage for BNPL/insurance, 92-96% for KYC-AML/loan (a couple of
+  optional columns missing from the samples), 0% cross-contamination
+  between verticals.
+- **Low-confidence matches (<40% coverage) surface a warning instead of
+  silently picking the top score** — important because an upload with very
+  few matching columns is exactly the case where guessing wrong is most
+  likely and most costly (wrong rules, wrong model, wrong decision).
+- **No `core/` changes** — detection lives entirely in `app/streamlit_app.py`
+  and reads each vertical's own `RAW_COLUMNS`; the four-agent pipeline
+  underneath is identical whether the vertical was picked manually or
+  detected.
+- Template downloads moved into a "Need a template first?" expander
+  listing all four verticals, since the vertical isn't known before upload
+  anymore.
+- `worksync/tests/test_streamlit_app.py`: one detection test per sample
+  file (must match its own vertical, zero coverage elsewhere) plus an
+  unrelated-columns case that must return zero confidence everywhere.
+
 ## Post-Phase-5 — professional redesign of the demo app (2026-10-06)
 
 - **Rebuilt the app around a decision, not a data dump.** Previous layout

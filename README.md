@@ -37,8 +37,11 @@ trained model artifacts in place first (see each `worksync/verticals/<x>/README.
 
 Two case sources: browse the sample dataset, or upload your own raw CSV/JSON
 case (same raw column names as that vertical's own source data — use the
-"Download a template row" button to see the expected columns). Either way
-the case runs through the identical four-agent pipeline.
+"Need a template first?" expander to download one per vertical). On upload,
+the vertical is detected automatically from the column headers — no need
+to tell it which vertical the file belongs to — with an override dropdown
+and a match-score breakdown so the detection is never a black box. Either
+way the case runs through the identical four-agent pipeline.
 
 ## Project report
 

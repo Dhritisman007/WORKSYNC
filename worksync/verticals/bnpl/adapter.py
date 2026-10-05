@@ -27,6 +27,11 @@ CATEGORICAL_FEATURES: list[str] = []
 BOOLEAN_FEATURES: list[str] = []
 ALL_FEATURES = NUMERIC_FEATURES
 
+# Raw source columns (Kaggle creditcard.csv). `Class` (the fraud label) is
+# deliberately excluded — it's the training target, not an input a real
+# upload would carry. Used by the demo app's upload-vertical detector.
+RAW_COLUMNS = ["Time", "Amount"] + V_COLUMNS
+
 
 def _num(row: Mapping[str, Any], col: str) -> float | None:
     value = row.get(col)

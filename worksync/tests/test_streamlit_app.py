@@ -16,7 +16,15 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from worksync.app.streamlit_app import VERTICALS, _ensure_id, get_orchestrator, parse_uploaded_file
+from worksync.app.streamlit_app import (
+    VERTICALS,
+    _ensure_id,
+    detect_vertical,
+    get_orchestrator,
+    parse_uploaded_file,
+)
+
+SAMPLES_DIR = Path("worksync/samples")
 
 
 class _FakeUpload(io.BytesIO):
@@ -128,3 +136,38 @@ def test_uploaded_loan_csv_with_multiple_rows_runs_each_through_the_pipeline():
         outcomes.append(result.decision.outcome.value)
 
     assert all(o in {"approve", "reject", "escalate"} for o in outcomes)
+
+
+def test_detect_vertical_recognizes_loan_sample():
+    df = pd.read_csv(SAMPLES_DIR / "loan_sample.csv")
+    matches = detect_vertical(list(df.columns))
+    assert matches[0].key == "loan"
+    assert matches[0].coverage > 0.9
+    assert all(m.coverage == 0 for m in matches[1:])
+
+
+def test_detect_vertical_recognizes_bnpl_sample():
+    df = pd.read_csv(SAMPLES_DIR / "bnpl_sample.csv")
+    matches = detect_vertical(list(df.columns))
+    assert matches[0].key == "bnpl"
+    assert matches[0].coverage == 1.0
+
+
+def test_detect_vertical_recognizes_insurance_sample():
+    df = pd.read_csv(SAMPLES_DIR / "insurance_sample.csv")
+    matches = detect_vertical(list(df.columns))
+    assert matches[0].key == "insurance"
+    assert matches[0].coverage == 1.0
+
+
+def test_detect_vertical_recognizes_kyc_aml_sample():
+    with open(SAMPLES_DIR / "kyc_aml_sample.json") as f:
+        records = json.load(f)
+    matches = detect_vertical(list(records[0].keys()))
+    assert matches[0].key == "kyc_aml"
+    assert matches[0].coverage > 0.9
+
+
+def test_detect_vertical_returns_zero_coverage_for_unrelated_columns():
+    matches = detect_vertical(["foo", "bar", "baz"])
+    assert all(m.coverage == 0 for m in matches)

@@ -23,6 +23,12 @@ CATEGORICAL_FEATURES = ["country_of_residence", "id_type"]
 BOOLEAN_FEATURES = ["pep_match", "sanctions_match", "adverse_media_hit"]
 ALL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES + BOOLEAN_FEATURES
 
+# This vertical's raw source columns are identical to its engineered
+# feature names (no Kaggle-style renaming happens here) plus the id column.
+# Used by the demo app's upload-vertical detector to recognize this file
+# shape without needing a separate schema.
+RAW_COLUMNS = ["applicant_id"] + ALL_FEATURES
+
 
 def _num(row: Mapping[str, Any], col: str) -> float | None:
     value = row.get(col)

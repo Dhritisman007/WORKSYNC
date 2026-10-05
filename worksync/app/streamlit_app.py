@@ -80,10 +80,11 @@ class VerticalSpec:
     row_to_case: Callable[[pd.Series, int], CaseRecord]
     label_col: str | None  # ground-truth column, if any, for display only
     id_col: str | None = None  # raw column row_to_case reads as entity id, if any
+    raw_columns: tuple[str, ...] = ()  # this vertical's expected raw source columns
 
 
 def _loan_spec() -> VerticalSpec:
-    from worksync.verticals.loan.adapter import row_to_case as loan_row_to_case
+    from worksync.verticals.loan import adapter as loan_adapter
     from worksync.verticals.loan.model.risk_model import LoanRiskModel
 
     return VerticalSpec(
@@ -94,14 +95,15 @@ def _loan_spec() -> VerticalSpec:
         audit_path=Path("worksync/logs/audit/loan.jsonl"),
         model_version="loan-lgbm-0.1.0",
         load_risk_model=LoanRiskModel,
-        row_to_case=lambda row, idx: loan_row_to_case(row),
+        row_to_case=lambda row, idx: loan_adapter.row_to_case(row),
         label_col="TARGET",
         id_col="SK_ID_CURR",
+        raw_columns=tuple(loan_adapter.RAW_COLUMNS),
     )
 
 
 def _kyc_aml_spec() -> VerticalSpec:
-    from worksync.verticals.kyc_aml.adapter import row_to_case as kyc_row_to_case
+    from worksync.verticals.kyc_aml import adapter as kyc_adapter
     from worksync.verticals.kyc_aml.model.risk_model import KycAmlRiskModel
 
     return VerticalSpec(
@@ -112,14 +114,15 @@ def _kyc_aml_spec() -> VerticalSpec:
         audit_path=Path("worksync/logs/audit/kyc_aml.jsonl"),
         model_version="kyc-aml-lgbm-0.1.0",
         load_risk_model=KycAmlRiskModel,
-        row_to_case=lambda row, idx: kyc_row_to_case(row),
+        row_to_case=lambda row, idx: kyc_adapter.row_to_case(row),
         label_col="high_risk_label",
         id_col="applicant_id",
+        raw_columns=tuple(kyc_adapter.RAW_COLUMNS),
     )
 
 
 def _bnpl_spec() -> VerticalSpec:
-    from worksync.verticals.bnpl.adapter import row_to_case as bnpl_row_to_case
+    from worksync.verticals.bnpl import adapter as bnpl_adapter
     from worksync.verticals.bnpl.model.risk_model import BnplRiskModel
 
     return VerticalSpec(
@@ -130,13 +133,14 @@ def _bnpl_spec() -> VerticalSpec:
         audit_path=Path("worksync/logs/audit/bnpl.jsonl"),
         model_version="bnpl-lgbm-0.1.0",
         load_risk_model=BnplRiskModel,
-        row_to_case=bnpl_row_to_case,
+        row_to_case=bnpl_adapter.row_to_case,
         label_col="Class",
+        raw_columns=tuple(bnpl_adapter.RAW_COLUMNS),
     )
 
 
 def _insurance_spec() -> VerticalSpec:
-    from worksync.verticals.insurance.adapter import row_to_case as insurance_row_to_case
+    from worksync.verticals.insurance import adapter as insurance_adapter
     from worksync.verticals.insurance.model.risk_model import InsuranceRiskModel
 
     return VerticalSpec(
@@ -147,9 +151,10 @@ def _insurance_spec() -> VerticalSpec:
         audit_path=Path("worksync/logs/audit/insurance.jsonl"),
         model_version="insurance-lgbm-0.1.0",
         load_risk_model=InsuranceRiskModel,
-        row_to_case=insurance_row_to_case,
+        row_to_case=insurance_adapter.row_to_case,
         label_col="FraudFound_P",
         id_col="PolicyNumber",
+        raw_columns=tuple(insurance_adapter.RAW_COLUMNS),
     )
 
 
@@ -211,6 +216,37 @@ def parse_uploaded_file(uploaded) -> pd.DataFrame:
         records = data if isinstance(data, list) else [data]
         return pd.DataFrame(records)
     return pd.read_csv(uploaded)
+
+
+@dataclass
+class VerticalMatch:
+    key: str
+    label: str
+    coverage: float  # fraction of that vertical's expected raw columns present in the upload
+    overlap: int
+
+
+def detect_vertical(columns: list[str]) -> list[VerticalMatch]:
+    """Scores every vertical by how much of ITS expected raw-column schema
+    is present in the uploaded file's headers, sorted best match first.
+
+    This is a column-signature match, not a model: no training, no
+    ambiguity resolution beyond "which schema does this look like" — exact
+    header names are what every adapter already keys off (`row.get("AMT_
+    INCOME_TOTAL")` etc.), so a header match is a faithful proxy for "will
+    this adapter actually populate its features from this file."
+    """
+    upload_cols = set(columns)
+    matches = []
+    for key, factory in VERTICALS.items():
+        spec = factory()
+        if not spec.raw_columns:
+            continue
+        overlap = upload_cols & set(spec.raw_columns)
+        coverage = len(overlap) / len(spec.raw_columns)
+        matches.append(VerticalMatch(key=key, label=spec.label, coverage=coverage, overlap=len(overlap)))
+    matches.sort(key=lambda m: (m.coverage, m.overlap), reverse=True)
+    return matches
 
 
 # --------------------------------------------------------------------------
@@ -453,20 +489,20 @@ def main() -> None:
 
     with st.sidebar:
         st.header("Pick a case")
-        vertical_key = st.selectbox(
-            "Vertical",
-            options=list(VERTICALS.keys()),
-            format_func=lambda k: VERTICALS[k]().label,
-        )
-        orchestrator, spec = get_orchestrator(vertical_key)
-        df = load_data(vertical_key, str(spec.data_path))
-
         source = st.radio("Case source", ["Sample dataset", "Upload a file"], horizontal=True)
 
         row: Any = None
         idx = 0
 
         if source == "Sample dataset":
+            vertical_key = st.selectbox(
+                "Vertical",
+                options=list(VERTICALS.keys()),
+                format_func=lambda k: VERTICALS[k]().label,
+            )
+            orchestrator, spec = get_orchestrator(vertical_key)
+            df = load_data(vertical_key, str(spec.data_path))
+
             if df is None:
                 st.warning(
                     f"Data file not found at `{spec.data_path}`. "
@@ -486,22 +522,28 @@ def main() -> None:
 
         else:  # Upload a file
             st.caption(
-                f"Upload a raw {spec.label} case: CSV (one or more rows) or JSON "
-                "(one record, or a list of records) — the same raw column "
-                "names as the vertical's own source data, not the engineered "
-                "feature names."
+                "Upload a raw case file: CSV (one or more rows) or JSON (one "
+                "record, or a list of records). The vertical is detected "
+                "automatically from the column names — no need to pick one "
+                "first."
             )
-            if df is not None and len(df) > 0:
-                template_cols = [c for c in df.columns if spec.label_col is None or c != spec.label_col]
-                template_csv = df.iloc[[0]][template_cols].to_csv(index=False)
-                st.download_button(
-                    "Download a template row (CSV)",
-                    data=template_csv,
-                    file_name=f"{vertical_key}_template.csv",
-                    mime="text/csv",
-                )
+            with st.expander("Need a template first?"):
+                for vkey, factory in VERTICALS.items():
+                    vspec = factory()
+                    vdf = load_data(vkey, str(vspec.data_path))
+                    if vdf is None or len(vdf) == 0:
+                        st.caption(f"{vspec.label}: sample data not available locally.")
+                        continue
+                    cols = [c for c in vdf.columns if vspec.label_col is None or c != vspec.label_col]
+                    st.download_button(
+                        f"{vspec.label} template (CSV)",
+                        data=vdf.iloc[[0]][cols].to_csv(index=False),
+                        file_name=f"{vkey}_template.csv",
+                        mime="text/csv",
+                        key=f"template-{vkey}",
+                    )
 
-            uploaded = st.file_uploader("Raw case file", type=["csv", "json"], key=f"upload-{vertical_key}")
+            uploaded = st.file_uploader("Raw case file", type=["csv", "json"], key="upload-any")
             if uploaded is None:
                 st.info("Upload a CSV or JSON file to run it through the pipeline.")
                 st.stop()
@@ -516,7 +558,48 @@ def main() -> None:
                 st.error("The uploaded file has no rows.")
                 st.stop()
 
+            matches = detect_vertical(list(upload_df.columns))
+            best = matches[0] if matches else None
+
             st.success(f"Loaded {len(upload_df)} row(s) from `{uploaded.name}`.")
+
+            if best is None or best.coverage == 0:
+                st.warning(
+                    "Couldn't match these columns to any vertical's schema. "
+                    "Pick the intended vertical manually below."
+                )
+                default_index = 0
+            elif best.coverage < 0.4:
+                st.warning(
+                    f"Low-confidence match: **{best.label}** shares only "
+                    f"{best.coverage:.0%} of its expected columns with this "
+                    "file. Double-check the vertical below before trusting the result."
+                )
+                default_index = list(VERTICALS.keys()).index(best.key)
+            else:
+                st.info(f"Detected vertical: **{best.label}** ({best.coverage:.0%} column match).")
+                default_index = list(VERTICALS.keys()).index(best.key)
+
+            with st.expander("Column match scores", expanded=False):
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {"vertical": m.label, "columns matched": m.overlap, "coverage": f"{m.coverage:.0%}"}
+                            for m in matches
+                        ]
+                    ),
+                    width="stretch",
+                    hide_index=True,
+                )
+
+            vertical_key = st.selectbox(
+                "Vertical (auto-detected, override if wrong)",
+                options=list(VERTICALS.keys()),
+                index=default_index,
+                format_func=lambda k: VERTICALS[k]().label,
+            )
+            orchestrator, spec = get_orchestrator(vertical_key)
+
             if len(upload_df) > 1:
                 idx = st.number_input(
                     "Row in uploaded file", min_value=0, max_value=len(upload_df) - 1, value=0, step=1

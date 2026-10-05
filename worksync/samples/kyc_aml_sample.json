@@ -1,0 +1,41 @@
+[
+  {
+    "age_years": 32,
+    "country_of_residence": "IN",
+    "id_type": "passport",
+    "document_quality_score": 0.92,
+    "address_match_score": 0.90,
+    "selfie_liveness_score": 0.95,
+    "device_risk_score": 0.05,
+    "application_velocity_24h": 0,
+    "pep_match": false,
+    "sanctions_match": false,
+    "adverse_media_hit": false
+  },
+  {
+    "age_years": 45,
+    "country_of_residence": "US",
+    "id_type": "national_id",
+    "document_quality_score": 0.85,
+    "address_match_score": 0.80,
+    "selfie_liveness_score": 0.88,
+    "device_risk_score": 0.10,
+    "application_velocity_24h": 1,
+    "pep_match": true,
+    "sanctions_match": false,
+    "adverse_media_hit": false
+  },
+  {
+    "age_years": 38,
+    "country_of_residence": "RU",
+    "id_type": "passport",
+    "document_quality_score": 0.60,
+    "address_match_score": 0.50,
+    "selfie_liveness_score": 0.70,
+    "device_risk_score": 0.40,
+    "application_velocity_24h": 3,
+    "pep_match": false,
+    "sanctions_match": true,
+    "adverse_media_hit": true
+  }
+]

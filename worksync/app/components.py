@@ -182,7 +182,7 @@ def render_audit_block(orchestrator: Orchestrator, case_id: str, allow_replay: b
             [
                 {
                     "agent": e.agent.value,
-                    "timestamp": e.timestamp,
+                    "timestamp": e.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
                     "model_version": e.model_version,
                     "ruleset_version": e.ruleset_version,
                     "entry_hash": e.entry_hash[:12] + "…",

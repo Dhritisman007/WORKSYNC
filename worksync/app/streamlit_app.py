@@ -16,7 +16,7 @@ import streamlit as st
 from worksync.app import design
 from worksync.app.pages_src import audit_explorer, case_submission, models_bands, overview, rule_sets, system_health
 
-st.set_page_config(page_title="WorkSync.AI", layout="wide")
+st.set_page_config(page_title="WorkSync.AI", page_icon="◆", layout="wide")
 design.inject_css()
 
 with st.sidebar:

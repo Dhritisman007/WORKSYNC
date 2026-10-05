@@ -20,7 +20,7 @@ from worksync.app.pipeline import VERTICALS, build_narrative, get_orchestrator, 
 
 def render() -> None:
     design.page_header(
-        "Governance",
+        "Governance / Audit Explorer",
         "Audit Explorer",
         "Search the hash-chained audit log, inspect any case's full agent trace, verify integrity, and replay.",
     )
@@ -42,8 +42,8 @@ def render() -> None:
     ok, bad_index = orchestrator.audit.verify_chain()
     design.kpi_row(
         [
-            ("Total entries", str(len(entries)), None, None),
-            ("Cases logged", str(len({e.case_id for e in entries})), None, None),
+            ("Total entries", f"{len(entries):,}", None, None),
+            ("Cases logged", f"{len({e.case_id for e in entries}):,}", None, None),
             ("Chain status", "VERIFIED" if ok else "TAMPERED", None, design.SUCCESS if ok else design.CRITICAL),
             ("Last entry", entries[-1].timestamp.strftime("%Y-%m-%d %H:%M:%S"), None, None),
         ]
@@ -91,7 +91,7 @@ def render() -> None:
                     "case_id": r["case_id"],
                     "outcome": r["outcome"],
                     "steps": r["steps"],
-                    "last_seen": r["last_seen"],
+                    "last_seen": r["last_seen"].strftime("%Y-%m-%d %H:%M:%S"),
                 }
                 for r in filtered
             ]

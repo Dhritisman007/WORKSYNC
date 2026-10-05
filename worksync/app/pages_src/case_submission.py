@@ -48,7 +48,7 @@ def _step_select_vertical() -> str:
         border = design.ACCENT if selected else design.BORDER
         with col:
             st.markdown(
-                f'<div class="ws-panel ws-panel-lift" style="border-color:{border}; border-width:{"1.5px" if selected else "1px"}; min-height:132px;">'
+                f'<div class="ws-panel ws-panel-lift" style="border-color:{border}; border-width:1.5px; min-height:132px;">'
                 f'<div style="font-weight:600; font-size:13.5px;">{spec.label}</div>'
                 f'<div style="font-size:11.5px; color:{design.TEXT_MUTED}; margin-top:.4rem;">{spec.data_desc}</div>'
                 f'<div style="font-size:11.5px; color:{design.TEXT_FAINT}; margin-top:.25rem;">{spec.model_desc}</div>'
@@ -220,7 +220,7 @@ def _run_case_with_progress(orchestrator: Orchestrator, case: CaseRecord) -> Cas
 
 def render() -> None:
     design.page_header(
-        "Cases",
+        "Cases / Case Submission",
         "Case Submission",
         "Select a vertical, provide case data, and run it through the live four-agent pipeline.",
     )
@@ -237,7 +237,11 @@ def render() -> None:
 
     active = st.session_state.get("active_case")
     if active is None:
-        st.caption("No case has been run yet — nothing below reflects real data until you click Run decision.")
+        st.markdown(
+            '<div class="ws-panel">No case has been run yet — nothing below reflects real data '
+            "until you click <strong>Run decision</strong>.</div>",
+            unsafe_allow_html=True,
+        )
         return
 
     orchestrator, spec = get_orchestrator(active["vertical_key"])

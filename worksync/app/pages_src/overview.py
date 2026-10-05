@@ -45,10 +45,10 @@ def render() -> None:
 
         design.kpi_row(
             [
-                ("Total cases", str(total_cases), "across all verticals", None),
-                ("Approved", str(outcome_totals.get("approve", 0)), None, design.SUCCESS),
-                ("Rejected", str(outcome_totals.get("reject", 0)), None, design.CRITICAL),
-                ("Escalated", str(outcome_totals.get("escalate", 0)), None, design.WARNING),
+                ("Total cases", f"{total_cases:,}", "across all verticals", None),
+                ("Approved", f"{outcome_totals.get('approve', 0):,}", None, design.SUCCESS),
+                ("Rejected", f"{outcome_totals.get('reject', 0):,}", None, design.CRITICAL),
+                ("Escalated", f"{outcome_totals.get('escalate', 0):,}", None, design.WARNING),
                 ("Avg. risk score", f"{avg_risk:.1%}" if avg_risk is not None else "—", None, None),
                 (
                     "Avg. decision time",
@@ -78,7 +78,7 @@ def render() -> None:
                 st.markdown(
                     f'<div class="ws-panel ws-panel-lift">'
                     f'<div style="font-weight:600; font-size:13.5px;">{s.label}</div>'
-                    f'<div style="font-size:20px; font-weight:700; margin-top:.25rem;">{s.total_cases}</div>'
+                    f'<div style="font-size:20px; font-weight:700; margin-top:.25rem;">{s.total_cases:,}</div>'
                     f'<div style="font-size:11px; color:{design.TEXT_FAINT};">cases processed</div>'
                     f'<div style="font-size:11.5px; color:{design.TEXT_MUTED}; margin-top:.4rem;">{counts_line}</div>'
                     f"</div>",

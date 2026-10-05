@@ -36,7 +36,7 @@ def _confusion_metrics(cm: list[list[int]]) -> dict[str, float]:
 
 def render() -> None:
     design.page_header(
-        "Governance",
+        "Governance / Models & Bands",
         "Models & Bands",
         "Real training metrics from each vertical's last model run, and the Manager agent's decision bands.",
     )

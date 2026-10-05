@@ -30,7 +30,7 @@ def _status_row(label: str, ok: bool, detail: str) -> None:
 
 def render() -> None:
     design.page_header(
-        "System",
+        "System / Agent Health",
         "Agent Health",
         "Real status of each vertical's pipeline components — data, model, rules, and the audit log.",
     )

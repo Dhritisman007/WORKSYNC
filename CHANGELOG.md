@@ -2,6 +2,32 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — polish pass (2026-10-06)
+
+Small, low-risk refinements after the enterprise redesign, prompted by
+"any minute changes that can improve it":
+
+- **`[client] toolbarMode = "viewer"`** in `.streamlit/config.toml` hides
+  Streamlit's own "Deploy" button and hamburger menu — those read as dev
+  tooling, not part of a shipped product.
+- Added a browser-tab favicon (`page_icon="◆"`) — previously blank.
+- **Breadcrumb-style page headers** (`Governance / Audit Explorer` instead
+  of just `Governance`) across all five non-Overview pages.
+- Fixed one inconsistent empty state in Case Submission (`st.caption`
+  instead of the `.ws-panel` card style every other empty state uses).
+- **Timestamps in data tables now render as `2026-10-06 03:41:16`**
+  instead of raw ISO-with-offset — applied in the shared audit-trail table
+  component and the Audit Explorer's case list (sorting still uses the
+  underlying `datetime`, only the displayed string changed).
+- Thousands separators on KPI counts (Overview, Audit Explorer) —
+  cosmetic now, matters once case volume grows past 1,000.
+- Fixed a 0.5px layout jiggle on the Case Submission vertical cards: the
+  selected card's border was 1.5px vs. 1px unselected, shifting content by
+  half a pixel on click. Both now render at a constant 1.5px, color-only
+  change on selection.
+
+No logic changes — 83 tests still pass.
+
 ## Post-Phase-5 — enterprise BFSI console redesign (2026-10-06)
 
 - **Restructured the single-page Streamlit app into a multi-page console**

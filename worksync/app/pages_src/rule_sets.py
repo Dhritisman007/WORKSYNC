@@ -18,7 +18,7 @@ from worksync.core.rule_engine.engine import load_ruleset
 
 def render() -> None:
     design.page_header(
-        "Governance",
+        "Governance / Rule Sets",
         "Rule Sets",
         "The declarative compliance rules each vertical's Compliance agent evaluates — loaded live from rules.yaml.",
     )

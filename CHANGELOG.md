@@ -2,6 +2,43 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — professional redesign of the demo app (2026-10-06)
+
+- **Rebuilt the app around a decision, not a data dump.** Previous layout
+  led with raw tables (case record, then risk metrics, then decision
+  buried below). Now: a live processing stepper, then a prominent color-
+  coded decision card with a plain-English conclusion up front, then
+  supporting detail in tabs (Risk analysis / Case record / Compliance /
+  Audit trail) — the verdict is the first thing anyone sees.
+- **`Orchestrator.run_case_with_detail()` gained an optional `on_step`
+  callback** (`core/orchestrator.py`), called after each of the four
+  pipeline stages. Additive and backward compatible — every existing
+  caller that doesn't pass it behaves identically. This lets the demo show
+  genuine per-stage progress (ingest → analyst → compliance → manager)
+  instead of faking it with a generic spinner; the UI never pretends a
+  step finished before the underlying agent call actually returned.
+- **`build_narrative()` composes a 2-4 sentence plain-English explanation**
+  of the decision from the actual `Decision`/`ComplianceFlags`/`RiskOutput`
+  objects — which hard rule fired (if any) and why, the dominant SHAP
+  signal and its direction, and a count of any additional soft-flag notes.
+  Not a canned string per outcome type — it reads differently case to case
+  based on what actually happened.
+- **A risk gauge renders where the score sits relative to the vertical's
+  own grey-band config** (`orchestrator.manager.config.grey_band_lower/
+  upper`), color-zoned green/amber/red, so "why didn't this auto-decide"
+  is visible at a glance instead of requiring someone to read the
+  Manager's threshold config.
+- **Compliance flags render as individual cards** (severity-colored left
+  border, action/severity chips, citation + verified status) instead of a
+  raw dataframe — easier to scan when there are several flags on one case.
+- Fixed a singular/plural grammar bug in the narrative ("1 additional note
+  were recorded" → "was recorded"), caught by actually reading the
+  rendered output in the browser, not by a test.
+- `worksync/tests/test_parity.py`'s source scan now skips `._*` files —
+  unrelated to the redesign, but hit while testing on this filesystem
+  (macOS AppleDouble sidecar files from a cross-volume copy were being
+  picked up by the `*.py` glob and crashing the UTF-8 read).
+
 ## Post-Phase-5 — file upload in the demo app (2026-10-05)
 
 - **`app/streamlit_app.py` gained a "Case source" toggle: sample dataset

@@ -53,6 +53,8 @@ class _StubRiskModel:
 def test_core_has_no_vertical_specific_branching():
     offending = []
     for path in sorted(CORE_DIR.rglob("*.py")):
+        if path.name.startswith("._"):
+            continue  # macOS AppleDouble sidecar file, not source
         for lineno, line in enumerate(path.read_text().splitlines(), start=1):
             stripped = line.strip()
             if any(

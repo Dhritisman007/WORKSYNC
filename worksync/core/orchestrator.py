@@ -6,6 +6,7 @@ the same orchestrator run all four BFSI verticals — and the dummy one.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable
 
 from worksync.core.agents.audit import AuditLog
 from worksync.core.agents.analyst import AnalystAgent
@@ -50,8 +51,18 @@ class Orchestrator:
     def run_case(self, case: CaseRecord) -> Decision:
         return self.run_case_with_detail(case).decision
 
-    def run_case_with_detail(self, case: CaseRecord) -> CaseResult:
+    def run_case_with_detail(
+        self, case: CaseRecord, on_step: Callable[[str], None] | None = None
+    ) -> CaseResult:
+        """`on_step`, if given, is called with "ingest", "analyst",
+        "compliance" and "manager" right after each stage completes — purely
+        a progress hook for a caller (e.g. the demo app) that wants to show
+        real pipeline progress. Optional and side-effect-free from the
+        pipeline's own point of view; omitting it reproduces the exact
+        previous behavior."""
         case_payload = case.model_dump(mode="json")
+        if on_step:
+            on_step("ingest")
 
         risk_env = self.analyst.handle(
             Envelope(case_id=case.case_id, vertical=case.vertical, agent=AgentName.ANALYST, payload=case_payload)
@@ -63,6 +74,8 @@ class Orchestrator:
             {"input": case_payload, "output": risk_env.payload},
             model_version=self.model_version,
         )
+        if on_step:
+            on_step("analyst")
 
         compliance_env = self.compliance.handle(
             Envelope(case_id=case.case_id, vertical=case.vertical, agent=AgentName.COMPLIANCE, payload=case_payload)
@@ -74,6 +87,8 @@ class Orchestrator:
             {"input": case_payload, "output": compliance_env.payload},
             ruleset_version=self.compliance.ruleset.version,
         )
+        if on_step:
+            on_step("compliance")
 
         manager_input = {"risk": risk_env.payload, "compliance": compliance_env.payload}
         manager_env = self.manager.handle(
@@ -85,6 +100,8 @@ class Orchestrator:
             AgentName.MANAGER,
             {"input": manager_input, "output": manager_env.payload},
         )
+        if on_step:
+            on_step("manager")
 
         return CaseResult(
             risk=RiskOutput.model_validate(risk_env.payload),

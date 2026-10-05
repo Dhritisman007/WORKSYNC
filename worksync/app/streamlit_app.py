@@ -349,6 +349,52 @@ def render_header() -> None:
     )
 
 
+_VERTICAL_SUMMARY = {
+    "loan": ("Loan", "Home Credit application data", "LightGBM + XGBoost, RBI-style rules"),
+    "kyc_aml": ("KYC/AML", "Seeded synthetic identity data", "PEP + sanctions screening, AML rules"),
+    "bnpl": ("Credit card / BNPL", "Kaggle transaction fraud data", "Amount-threshold rules"),
+    "insurance": ("Insurance claims", "Kaggle claims fraud data", "IRDAI-style rules"),
+}
+
+
+def render_landing() -> None:
+    st.markdown(
+        """
+        <div class="wsync-card" style="padding:1.4rem 1.6rem;">
+          <div style="font-size:16px; font-weight:600; margin-bottom:.3rem;">Get started</div>
+          <div style="font-size:14px; color:#a9b0bd; line-height:1.6;">
+            Pick a vertical and a case in the sidebar — browse the sample dataset or upload your
+            own raw CSV/JSON (the vertical is detected automatically from its columns) — then
+            click <strong>Run this case</strong> to send it through the pipeline: Analyst agent
+            (risk model + SHAP) and Compliance agent (rule engine) run independently on the case,
+            the Manager agent combines both into a decision, and the Audit agent records every
+            step in a hash-chained, replayable log.
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    cols = st.columns(4)
+    for col, (key, (label, data_desc, rules_desc)) in zip(cols, _VERTICAL_SUMMARY.items()):
+        with col:
+            st.markdown(
+                f"""
+                <div class="wsync-card" style="min-height:118px;">
+                  <div style="font-weight:600; font-size:14px; margin-bottom:.4rem;">{label}</div>
+                  <div style="font-size:12.5px; color:#a9b0bd; line-height:1.5;">{data_desc}</div>
+                  <div style="font-size:12.5px; color:#8a93a6; margin-top:.3rem;">{rules_desc}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.caption(
+        "No case has been run yet in this session — nothing below reflects real data until you "
+        "click Run this case."
+    )
+
+
 def run_case_with_progress(orchestrator: Orchestrator, case: CaseRecord) -> CaseResult:
     with st.status("Running case through the pipeline…", expanded=True) as status:
         placeholders = {key: st.empty() for key, _ in PIPELINE_STEPS}
@@ -614,8 +660,19 @@ def main() -> None:
 
         row = _ensure_id(row, spec.id_col, idx)
 
+        st.divider()
+        run_clicked = st.button("Run this case", type="primary", width="stretch")
+        if run_clicked:
+            st.session_state["active_case"] = {"vertical_key": vertical_key, "row": row, "idx": idx}
+
+    active = st.session_state.get("active_case")
+    if active is None:
+        render_landing()
+        return
+
+    orchestrator, spec = get_orchestrator(active["vertical_key"])
     try:
-        case = spec.row_to_case(row, idx)
+        case = spec.row_to_case(active["row"], active["idx"])
         result = run_case_with_progress(orchestrator, case)
     except Exception as exc:
         st.error(f"Couldn't run this case through the pipeline: {exc}")

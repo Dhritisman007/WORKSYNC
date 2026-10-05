@@ -2,6 +2,26 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — explicit landing page instead of auto-running on load (2026-10-06)
+
+- **The app no longer runs a case the instant it loads.** Previously it
+  auto-ran row 0 of the Loan sample dataset on first paint, which read as
+  a bug/unfinished state rather than a deliberate default — a fresh visit
+  showed "real" results from data nobody asked to see yet. Now the
+  pipeline only runs when the user clicks **"Run this case"** in the
+  sidebar; before that, a landing screen explains what the app does and
+  summarizes the four verticals.
+- **Implementation: `st.session_state["active_case"]` holds the last case
+  that was explicitly submitted** (vertical key, row, row index) — set
+  only inside the `if run_clicked:` branch. The sidebar's vertical/row/
+  upload selection is always live, but it doesn't re-run the pipeline on
+  every tweak; the displayed result stays pinned to whatever was last
+  explicitly run until Run is clicked again. This is a standard "configure
+  then submit" pattern, not a core/ or adapter change — nothing about the
+  four-agent pipeline changed, only when the demo app chooses to call it.
+- `render_landing()` reuses the existing `.wsync-card` styling so it reads
+  as part of the same design system, not a bolted-on splash screen.
+
 ## Post-Phase-5 — automatic vertical detection on upload (2026-10-06)
 
 - **Upload no longer requires picking the vertical first.** "Case source:

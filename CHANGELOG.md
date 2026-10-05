@@ -2,6 +2,68 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — enterprise BFSI console redesign (2026-10-06)
+
+- **Restructured the single-page Streamlit app into a multi-page console**
+  (`st.navigation`, Streamlit 1.65) with the sections a BFSI decisioning
+  platform's SRS actually asks for: Overview, Cases → Case Submission,
+  Governance → Audit Explorer / Rule Sets / Models & Bands, System → Agent
+  Health. The brief for this also described a Reviewer Queue and Human
+  Review workspace with persistent assignment, priority and override
+  history, and a System Health page for a separate API Gateway/Orchestrator/
+  database — **none of those exist in this project** (no REST API, no
+  database, no user accounts), so rather than fabricate placeholder data
+  for them, they were left out and flagged to the user. Every page that
+  *was* built uses only real, already-existing data sources: the persisted
+  hash-chained audit log, the actual `rules.yaml` per vertical, and the
+  real `model/artifacts/metadata.json` written by each vertical's own
+  `train.py`.
+- **`worksync/app/pipeline.py`**: all vertical/orchestrator/upload-parsing
+  logic, extracted out of the single app file so every page can share it
+  without duplication. `worksync/app/design.py`: the enterprise dark theme
+  (near-black navy background, two panel shades, a single restrained accent
+  blue, semantic colors used only for state) plus reusable components (KPI
+  rows, badges, the pipeline diagram). `worksync/app/components.py`: the
+  shared result-rendering blocks (decision banner, risk/compliance/why/
+  timeline/audit) used identically by Case Submission (a case just run) and
+  Audit Explorer (a case reconstructed from the log) — one implementation,
+  not two that could drift.
+- **New: `reconstruct_case_result()`** rebuilds a full `CaseResult` (risk +
+  compliance + decision) for *any* previously logged case by reading only
+  the persisted JSONL audit entries and re-validating their payloads back
+  into the real pydantic models — this is what lets the Audit Explorer show
+  complete historical case detail even after an app restart, not just the
+  current session's last-run case. It is a read path only; it does not
+  re-run the agents (that's what `replay()` already does).
+- **New: `summarize_audit_log()`** computes genuine KPIs (total cases,
+  outcome counts, average risk probability, average analyst→manager
+  processing time, chain-verification status) directly from each
+  vertical's audit log. The Overview page shows these, or an explicit
+  "no cases run yet" state — never placeholder numbers.
+- **Theme via `.streamlit/config.toml`**, not CSS overrides fighting
+  Streamlit's defaults — `primaryColor` etc. set there so native widgets
+  (buttons, the active-tab underline, radio selection) pick up the accent
+  blue automatically instead of Streamlit's default red.
+- **Found and fixed the same HTML-block-termination bug a second time, in
+  a new place**: the pipeline diagram's inline SVG (a single `st.markdown`
+  call, not a concatenation this time) rendered only its top half — the
+  Manager/decision/Audit portion leaked out as literal visible text. Cause:
+  Streamlit's CommonMark-based renderer treats `<svg>` as a generic block
+  tag (not a `<style>`/`<script>`/`<pre>` "verbatim until closing tag"
+  element), so a *single blank line inside the SVG* (used purely for
+  visual grouping in the source) terminated the HTML block early. Fixed by
+  rewriting the diagram as one unbroken string with zero internal blank
+  lines, matching the lesson from the stat-card bug. Audited every other
+  multi-line HTML block in the new pages for the same risk — all clear.
+  This is the second time this exact class of bug has appeared and the
+  second time it was only caught by actually loading the page in a
+  browser, not by linting, type-checking, or the test suite.
+- `worksync/tests/test_streamlit_app.py` updated to import from
+  `worksync.app.pipeline` (where the logic now lives) instead of
+  `worksync.app.streamlit_app`. All 83 tests still pass unchanged
+  otherwise — this was a presentation-layer restructure, not a change to
+  any agent, model, rule, or decision logic.
+
 ## Post-Phase-5 — tactile visual pass on the demo app (2026-10-06)
 
 - **Custom stat-card component (`stat_card_row()`) replaces `st.metric`**

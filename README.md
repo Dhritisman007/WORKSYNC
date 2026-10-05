@@ -32,16 +32,31 @@ pytest worksync/tests -q
 streamlit run worksync/app/streamlit_app.py
 ```
 
-Pick a vertical and a case in the sidebar; needs that vertical's data +
-trained model artifacts in place first (see each `worksync/verticals/<x>/README.md`).
+A multi-page BFSI decisioning console:
 
-Two case sources: browse the sample dataset, or upload your own raw CSV/JSON
-case (same raw column names as that vertical's own source data — use the
-"Need a template first?" expander to download one per vertical). On upload,
-the vertical is detected automatically from the column headers — no need
-to tell it which vertical the file belongs to — with an override dropdown
-and a match-score breakdown so the detection is never a black box. Either
-way the case runs through the identical four-agent pipeline.
+- **Overview** — real KPIs (total cases, outcome mix, avg. risk, avg.
+  decision time) computed from the actual audit logs, plus the four-agent
+  pipeline diagram.
+- **Cases → Case Submission** — pick a vertical, provide case data (sample
+  dataset or upload your own raw CSV/JSON — the vertical is auto-detected
+  from the column headers), validate, and run it through the live pipeline.
+  Results show a decision verdict, a plain-English "why this decision"
+  explanation, risk/SHAP, compliance flags, a timeline, and the audit trail.
+- **Governance → Audit Explorer** — search the persisted, hash-chained
+  audit log for any vertical, reopen any past case's full detail (even
+  across app restarts), verify the chain, and replay a case.
+- **Governance → Rule Sets** — each vertical's real compliance rules, with
+  severity and verification status.
+- **Governance → Models & Bands** — real training metrics (AUC, KS, Brier,
+  precision/recall) from each vertical's last model run, and the Manager
+  agent's decision-threshold bands.
+- **System → Agent Health** — real status of each vertical's pipeline
+  components (data, model, rules, audit log) — this project has no
+  separate API/database to monitor, so this reports what's actually
+  loaded, not simulated infrastructure.
+
+Needs each vertical's data + trained model artifacts in place first (see
+`worksync/verticals/<x>/README.md`).
 
 ## Project report
 

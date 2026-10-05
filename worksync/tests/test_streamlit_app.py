@@ -1,4 +1,4 @@
-"""Tests for the demo app's file-upload path (app/streamlit_app.py).
+"""Tests for the demo app's shared pipeline logic (app/pipeline.py).
 
 These exercise the parsing/id-filling helpers and the full pipeline against
 an uploaded file directly — not through a browser — since the point is that
@@ -16,7 +16,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from worksync.app.streamlit_app import (
+from worksync.app.pipeline import (
     VERTICALS,
     _ensure_id,
     detect_vertical,

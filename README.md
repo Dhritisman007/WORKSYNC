@@ -35,6 +35,11 @@ streamlit run worksync/app/streamlit_app.py
 Pick a vertical and a case in the sidebar; needs that vertical's data +
 trained model artifacts in place first (see each `worksync/verticals/<x>/README.md`).
 
+Two case sources: browse the sample dataset, or upload your own raw CSV/JSON
+case (same raw column names as that vertical's own source data — use the
+"Download a template row" button to see the expected columns). Either way
+the case runs through the identical four-agent pipeline.
+
 ## Project report
 
 See `worksync/docs/project_writeup.md` for the full write-up and

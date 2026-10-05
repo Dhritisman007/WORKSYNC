@@ -2,6 +2,33 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — file upload in the demo app (2026-10-05)
+
+- **`app/streamlit_app.py` gained a "Case source" toggle: sample dataset
+  (existing) vs. upload a file.** Upload accepts CSV (one or more raw rows)
+  or JSON (one record, or a list of records), in the vertical's own raw
+  column format — the same columns its Kaggle/synthetic source file uses,
+  not the engineered `CaseRecord` feature names. A per-vertical template
+  download button (generated from the sample dataset's first row, ground-
+  truth column stripped) tells the user exactly which columns to fill in.
+- **`_ensure_id()` fills in a synthetic entity id** (`upload-{n}`) when an
+  uploaded row is missing the raw id column that vertical's `row_to_case`
+  reads (`SK_ID_CURR` for loan, `applicant_id` for KYC/AML) — an uploaded
+  case won't have Kaggle's internal id, and without this it would read as
+  `loan-None`. Works identically for a pandas row or a parsed JSON dict,
+  since both support `.get`/`.copy()`/item assignment.
+- **No `core/` or adapter changes were needed** — an uploaded row runs
+  through `spec.row_to_case()` and `orchestrator.run_case_with_detail()`
+  exactly like a sample-dataset row, because the adapters already treat
+  missing/null raw fields gracefully (built in Phase 3, not new). This is
+  more evidence for the parity claim: the demo's input path changed, the
+  four-agent pipeline underneath did not.
+- **`worksync/tests/test_streamlit_app.py`**: parsing/id-filling unit
+  tests (always run) plus one full-pipeline test per vertical that has
+  artifacts present — including a sanctions-match KYC/AML upload that must
+  hard-reject, proving the uploaded path enforces compliance rules exactly
+  like the sample-dataset path does.
+
 ## Phase 1 — Lock the contract (2026-09-24)
 
 - **Repo layout** follows the brief exactly: `core/` is vertical-agnostic,

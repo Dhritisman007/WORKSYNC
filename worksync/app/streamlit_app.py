@@ -15,9 +15,10 @@ Run with: streamlit run worksync/app/streamlit_app.py
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import pandas as pd
 import streamlit as st
@@ -44,6 +45,7 @@ class VerticalSpec:
     load_risk_model: Callable[[], object]
     row_to_case: Callable[[pd.Series, int], CaseRecord]
     label_col: str | None  # ground-truth column, if any, for display only
+    id_col: str | None = None  # raw column row_to_case reads as entity id, if any
 
 
 def _loan_spec() -> VerticalSpec:
@@ -60,6 +62,7 @@ def _loan_spec() -> VerticalSpec:
         load_risk_model=LoanRiskModel,
         row_to_case=lambda row, idx: loan_row_to_case(row),
         label_col="TARGET",
+        id_col="SK_ID_CURR",
     )
 
 
@@ -77,6 +80,7 @@ def _kyc_aml_spec() -> VerticalSpec:
         load_risk_model=KycAmlRiskModel,
         row_to_case=lambda row, idx: kyc_row_to_case(row),
         label_col="high_risk_label",
+        id_col="applicant_id",
     )
 
 
@@ -143,6 +147,35 @@ def load_data(vertical_key: str, data_path_str: str) -> pd.DataFrame | None:
     if not path.exists():
         return None
     return pd.read_csv(path)
+
+
+def _ensure_id(row: Any, id_col: str | None, idx: int) -> Any:
+    """If the vertical reads a specific raw id column and the uploaded row
+    doesn't have one, fill in a synthetic id so row_to_case doesn't produce
+    a case_id like "loan-None". Works for both a pandas Series (sample
+    dataset) and a plain dict (parsed JSON upload) — both support
+    `.get`/`.copy()`/item assignment."""
+    if id_col is None:
+        return row
+    value = row.get(id_col)
+    if value is None or (isinstance(value, float) and pd.isna(value)) or value == "":
+        row = row.copy()
+        row[id_col] = f"upload-{idx}"
+    return row
+
+
+def parse_uploaded_file(uploaded) -> pd.DataFrame:
+    """Accepts a raw CSV (one or more rows) or JSON (one record, or a list
+    of records) in the vertical's own raw column format — the same format
+    its Kaggle/synthetic source file uses, not the engineered CaseRecord
+    feature names. Returns a DataFrame so the rest of the app can treat an
+    uploaded row exactly like a sample-dataset row."""
+    name = uploaded.name.lower()
+    if name.endswith(".json"):
+        data = json.load(uploaded)
+        records = data if isinstance(data, list) else [data]
+        return pd.DataFrame(records)
+    return pd.read_csv(uploaded)
 
 
 def render_case_record(case: CaseRecord) -> None:
@@ -260,23 +293,82 @@ def main() -> None:
         orchestrator, spec = get_orchestrator(vertical_key)
         df = load_data(vertical_key, str(spec.data_path))
 
-        if df is None:
-            st.warning(
-                f"Data file not found at `{spec.data_path}`. "
-                f"See `worksync/verticals/{vertical_key}/README.md` for how to get/generate it."
+        source = st.radio("Case source", ["Sample dataset", "Upload a file"], horizontal=True)
+
+        row: Any = None
+        idx = 0
+
+        if source == "Sample dataset":
+            if df is None:
+                st.warning(
+                    f"Data file not found at `{spec.data_path}`. "
+                    f"See `worksync/verticals/{vertical_key}/README.md` for how to get/generate it, "
+                    f"or switch to 'Upload a file' above."
+                )
+                st.stop()
+
+            max_index = len(df) - 1
+            row_index = st.number_input("Row index", min_value=0, max_value=max_index, value=0, step=1)
+            if st.button("🎲 Random case"):
+                row_index = int(df.sample(1).index[0])
+            row = df.iloc[row_index]
+            idx = int(row.name)
+            if spec.label_col and spec.label_col in df.columns:
+                st.caption(f"Ground-truth `{spec.label_col}`: {row[spec.label_col]}")
+
+        else:  # Upload a file
+            st.caption(
+                f"Upload a raw {spec.label} case: CSV (one or more rows) or JSON "
+                "(one record, or a list of records) — the same raw column "
+                "names as the vertical's own source data, not the engineered "
+                "feature names."
             )
-            st.stop()
+            if df is not None and len(df) > 0:
+                template_cols = [c for c in df.columns if spec.label_col is None or c != spec.label_col]
+                template_csv = df.iloc[[0]][template_cols].to_csv(index=False)
+                st.download_button(
+                    "Download a template row (CSV)",
+                    data=template_csv,
+                    file_name=f"{vertical_key}_template.csv",
+                    mime="text/csv",
+                )
 
-        max_index = len(df) - 1
-        row_index = st.number_input("Row index", min_value=0, max_value=max_index, value=0, step=1)
-        if st.button("🎲 Random case"):
-            row_index = int(df.sample(1).index[0])
-        row = df.iloc[row_index]
-        if spec.label_col and spec.label_col in df.columns:
-            st.caption(f"Ground-truth `{spec.label_col}`: {row[spec.label_col]}")
+            uploaded = st.file_uploader("Raw case file", type=["csv", "json"], key=f"upload-{vertical_key}")
+            if uploaded is None:
+                st.info("Upload a CSV or JSON file to run it through the pipeline.")
+                st.stop()
 
-    case = spec.row_to_case(row, int(row.name))
-    result = orchestrator.run_case_with_detail(case)
+            try:
+                upload_df = parse_uploaded_file(uploaded)
+            except Exception as exc:
+                st.error(f"Couldn't parse `{uploaded.name}`: {exc}")
+                st.stop()
+
+            if upload_df.empty:
+                st.error("The uploaded file has no rows.")
+                st.stop()
+
+            st.success(f"Loaded {len(upload_df)} row(s) from `{uploaded.name}`.")
+            if len(upload_df) > 1:
+                idx = st.number_input(
+                    "Row in uploaded file", min_value=0, max_value=len(upload_df) - 1, value=0, step=1
+                )
+            row = upload_df.iloc[idx]
+            with st.expander("Preview uploaded row"):
+                st.dataframe(
+                    pd.DataFrame(sorted(row.items()), columns=["column", "value"]),
+                    width="stretch",
+                    hide_index=True,
+                )
+
+        row = _ensure_id(row, spec.id_col, idx)
+
+    try:
+        case = spec.row_to_case(row, idx)
+        result = orchestrator.run_case_with_detail(case)
+    except Exception as exc:
+        st.error(f"Couldn't run this case through the pipeline: {exc}")
+        st.stop()
 
     left, right = st.columns(2)
     with left:

@@ -52,20 +52,125 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
-        .wsync-topbar { height: 4px; background: linear-gradient(90deg, #1b3a6b, #2d6cdf 45%, #1b7a3d); border-radius: 2px; margin-bottom: 1.1rem; }
-        .wsync-eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #8a93a6; font-weight: 600; margin-bottom: .15rem; }
-        .wsync-card { border: 1px solid rgba(140,150,170,0.25); border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: .9rem; background: rgba(140,150,170,0.05); }
-        .wsync-step-done { color: #1b7a3d; font-size: 14px; margin: .15rem 0; }
-        .wsync-step-pending { color: #8a93a6; font-size: 14px; margin: .15rem 0; }
+        :root {
+          --wsync-accent: #2d6cdf;
+          --wsync-accent-dark: #1b3a6b;
+          --wsync-success: #1b7a3d;
+          --wsync-danger: #b3261e;
+          --wsync-warning: #946200;
+          --wsync-border: rgba(140,150,170,0.25);
+          --wsync-surface: rgba(140,150,170,0.05);
+          --wsync-text-muted: #a9b0bd;
+          --wsync-text-faint: #8a93a6;
+        }
+
+        @keyframes wsyncFadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .wsync-topbar {
+          height: 4px; border-radius: 2px; margin-bottom: 1.1rem;
+          background: linear-gradient(90deg, var(--wsync-accent-dark), var(--wsync-accent) 45%, var(--wsync-success));
+          background-size: 200% 100%;
+          animation: wsyncShift 6s ease-in-out infinite alternate;
+        }
+        @keyframes wsyncShift { from { background-position: 0% 0; } to { background-position: 100% 0; } }
+
+        .wsync-eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--wsync-text-faint); font-weight: 600; margin-bottom: .15rem; }
+
+        .wsync-card {
+          border: 1px solid var(--wsync-border); border-radius: 12px; padding: 1rem 1.2rem;
+          margin-bottom: .9rem; background: var(--wsync-surface);
+          box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+          transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+          animation: wsyncFadeUp .25s ease;
+        }
+        .wsync-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.28); border-color: rgba(140,150,170,0.45); }
+
+        .wsync-decision {
+          border-left: 6px solid var(--accent); border-radius: 12px; padding: 1.15rem 1.45rem;
+          margin: .4rem 0 1rem 0; color: #1a1a1a; box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+          animation: wsyncFadeUp .3s ease;
+        }
+
+        .wsync-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .7rem; margin: .8rem 0; }
+        .wsync-stat {
+          border: 1px solid var(--wsync-border); border-top: 3px solid var(--stat-accent, var(--wsync-accent));
+          border-radius: 10px; padding: .7rem .9rem; background: var(--wsync-surface);
+          box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+          transition: transform .16s ease, box-shadow .16s ease;
+          animation: wsyncFadeUp .3s ease;
+        }
+        .wsync-stat:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.25); }
+        .wsync-stat-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--wsync-text-faint); font-weight: 600; }
+        .wsync-stat-value { font-size: 24px; font-weight: 700; margin-top: .2rem; line-height: 1.15; }
+
+        .wsync-step-done { color: var(--wsync-success); font-size: 14px; margin: .2rem 0; transition: color .2s ease; }
+        .wsync-step-pending { color: var(--wsync-text-faint); font-size: 14px; margin: .2rem 0; }
+
         .wsync-chip { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600; margin-right:6px; }
-        .wsync-flag-card { border-left: 4px solid; border-radius: 6px; padding: .6rem .9rem; margin-bottom: .55rem; background: rgba(140,150,170,0.06); }
+
+        .wsync-flag-card {
+          border-left: 4px solid; border-radius: 8px; padding: .65rem .95rem; margin-bottom: .55rem;
+          background: var(--wsync-surface); box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+          transition: transform .14s ease, box-shadow .14s ease; animation: wsyncFadeUp .25s ease;
+        }
+        .wsync-flag-card:hover { transform: translateX(3px); box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
         .wsync-flag-title { font-weight: 600; font-size: 14px; }
-        .wsync-flag-desc { font-size: 13px; color: #a9b0bd; margin-top: 2px; }
-        .wsync-flag-meta { font-size: 11.5px; color: #8a93a6; margin-top: 4px; }
+        .wsync-flag-desc { font-size: 13px; color: var(--wsync-text-muted); margin-top: 2px; }
+        .wsync-flag-meta { font-size: 11.5px; color: var(--wsync-text-faint); margin-top: 4px; }
+
+        /* Buttons: tactile press + hover lift */
+        div[data-testid="stButton"] button, div[data-testid="stDownloadButton"] button {
+          border-radius: 8px !important; font-weight: 600 !important;
+          transition: transform .1s ease, box-shadow .16s ease, filter .16s ease !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+        }
+        div[data-testid="stButton"] button:hover, div[data-testid="stDownloadButton"] button:hover {
+          transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0,0,0,0.3); filter: brightness(1.08);
+        }
+        div[data-testid="stButton"] button:active, div[data-testid="stDownloadButton"] button:active {
+          transform: translateY(0px) scale(.98); box-shadow: 0 1px 2px rgba(0,0,0,0.3); filter: brightness(.96);
+        }
+
+        /* Tabs: animated underline */
+        [data-baseweb="tab-list"] { gap: 4px; }
+        [data-baseweb="tab"] { transition: color .15s ease, background-color .15s ease; border-radius: 8px 8px 0 0 !important; }
+        [data-baseweb="tab"]:hover { background: rgba(140,150,170,0.08); }
+        [data-baseweb="tab-highlight"] { transition: left .2s ease, width .2s ease !important; }
+
+        /* File uploader dropzone */
+        [data-testid="stFileUploaderDropzone"] {
+          border-radius: 10px !important; transition: border-color .16s ease, background-color .16s ease !important;
+        }
+        [data-testid="stFileUploaderDropzone"]:hover { border-color: var(--wsync-accent) !important; background: rgba(45,108,223,0.06) !important; }
+
+        /* Sidebar panel */
+        section[data-testid="stSidebar"] { border-right: 1px solid var(--wsync-border); }
+
+        /* Risk gauge marker pop */
+        .wsync-gauge-marker { transition: left .25s ease; box-shadow: 0 0 0 3px rgba(0,0,0,0.25); }
         </style>
         """,
         unsafe_allow_html=True,
     )
+
+
+def stat_card_row(stats: list[tuple[str, str, str | None]]) -> None:
+    """Renders a row of tactile stat cards. Each item is (label, value, accent_hex|None).
+
+    Built as single-line HTML (no internal newlines/indentation) — Streamlit's
+    markdown renderer treats a 4+-space-indented line as a code block, which
+    silently breaks multi-line f-string HTML the moment it's joined with
+    other cards and re-indented by Python's own source indentation.
+    """
+    style_attr = lambda accent: f' style="--stat-accent:{accent};"' if accent else ""
+    cards = "".join(
+        f'<div class="wsync-stat"{style_attr(accent)}>'
+        f'<div class="wsync-stat-label">{label}</div>'
+        f'<div class="wsync-stat-value">{value}</div>'
+        f"</div>"
+        for label, value, accent in stats
+    )
+    st.markdown(f'<div class="wsync-stat-row">{cards}</div>', unsafe_allow_html=True)
 
 
 @dataclass
@@ -319,13 +424,15 @@ def risk_gauge_html(prob: float, low: float, high: float, accent: str) -> str:
     high_pct = max(0.0, min(100.0, high * 100))
     return f"""
     <div style="margin: .3rem 0 .2rem 0;">
-      <div style="position:relative; height:10px; border-radius:6px; overflow:hidden;
+      <div style="position:relative; height:10px; border-radius:6px; overflow:visible;
                   background: linear-gradient(to right,
                     rgba(27,122,61,0.35) 0%, rgba(27,122,61,0.35) {low_pct}%,
                     rgba(148,98,0,0.35) {low_pct}%, rgba(148,98,0,0.35) {high_pct}%,
-                    rgba(179,38,30,0.35) {high_pct}%, rgba(179,38,30,0.35) 100%);">
-        <div style="position:absolute; top:-3px; left:calc({pct}% - 2px); width:4px; height:16px;
-                    background:{accent}; border-radius:2px;"></div>
+                    rgba(179,38,30,0.35) {high_pct}%, rgba(179,38,30,0.35) 100%);
+                  box-shadow: inset 0 1px 2px rgba(0,0,0,0.25);">
+        <div class="wsync-gauge-marker" title="{pct:.1f}%"
+             style="position:absolute; top:-3px; left:calc({pct}% - 2px); width:4px; height:16px;
+                    background:{accent}; border-radius:2px; cursor:default;"></div>
       </div>
       <div style="display:flex; justify-content:space-between; font-size:11px; color:#8a93a6; margin-top:3px;">
         <span>0%</span><span>grey band {low:.0%}–{high:.0%}</span><span>100%</span>
@@ -420,8 +527,7 @@ def render_conclusion(result: CaseResult, orchestrator: Orchestrator) -> None:
 
     st.markdown(
         f"""
-        <div style="border-left: 6px solid {style['accent']}; background:{style['bg']};
-                    color:#1a1a1a; padding:1.1rem 1.4rem; border-radius:10px; margin: .4rem 0 1rem 0;">
+        <div class="wsync-decision" style="--accent:{style['accent']}; background:{style['bg']};">
           <div style="font-size:12px; text-transform:uppercase; letter-spacing:.07em;
                       color:{style['accent']}; font-weight:700;">Decision</div>
           <div style="font-size:26px; font-weight:700; color:{style['accent']}; margin:.1rem 0 .55rem 0;">
@@ -433,10 +539,14 @@ def render_conclusion(result: CaseResult, orchestrator: Orchestrator) -> None:
         unsafe_allow_html=True,
     )
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Risk probability", f"{result.decision.risk_probability:.1%}" if result.decision.risk_probability is not None else "—")
-    col2.metric("Model confidence", result.decision.confidence_band or "—")
-    col3.metric("Compliance flags", len(result.compliance.flags))
+    prob_display = f"{result.decision.risk_probability:.1%}" if result.decision.risk_probability is not None else "—"
+    stat_card_row(
+        [
+            ("Risk probability", prob_display, style["accent"]),
+            ("Model confidence", result.decision.confidence_band or "—", None),
+            ("Compliance flags", str(len(result.compliance.flags)), None),
+        ]
+    )
 
     st.markdown(
         risk_gauge_html(result.decision.risk_probability or 0.0, grey_low, grey_high, style["accent"]),
@@ -445,10 +555,14 @@ def render_conclusion(result: CaseResult, orchestrator: Orchestrator) -> None:
 
 
 def render_risk_tab(result: CaseResult) -> None:
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Risk probability", f"{result.risk.risk_probability:.4f}")
-    c2.metric("Confidence band", result.risk.confidence_band)
-    c3.metric("Model", f"{result.risk.model_name} · {result.risk.model_version}")
+    stat_card_row(
+        [
+            ("Risk probability", f"{result.risk.risk_probability:.4f}", None),
+            ("Confidence band", result.risk.confidence_band, None),
+            ("Model", f"{result.risk.model_name}", None),
+        ]
+    )
+    st.caption(f"Model version: `{result.risk.model_version}`")
 
     st.markdown("**Top SHAP attributions**")
     st.caption("Positive bars pushed the risk score up; negative bars pulled it down.")

@@ -2,6 +2,37 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — tactile visual pass on the demo app (2026-10-06)
+
+- **Custom stat-card component (`stat_card_row()`) replaces `st.metric`**
+  for risk probability / confidence / flag count — bordered tiles with a
+  colored top accent, shadow, and hover lift, consistent with the card
+  language used everywhere else (compliance flags, landing page).
+- **Hover/press states added throughout**: cards lift on hover (translateY
+  + shadow), buttons lift on hover and depress on click (scale .98,
+  darker shadow), the file-upload dropzone highlights on hover, tabs get
+  a background tint on hover and an animated underline transition.
+  "Tactile" specifically meant interactive elements should visibly respond
+  to being touched, not just exist — this is the direct fix for that.
+- **Animated topbar and fade-up entrance** on cards/stats/decision banner
+  (`wsyncFadeUp` keyframe) — new content appearing (after clicking Run)
+  now visibly settles in instead of popping in static.
+- **Found and fixed a real rendering bug while building this**: concatenating
+  multiple multi-line, Python-source-indented HTML f-strings for the stat
+  cards produced a blank-looking line between cards. Streamlit's markdown
+  renderer (CommonMark semantics) treats a recognized `<div>`-starting
+  block as raw HTML only until the next blank line — after that, a line
+  indented 4+ spaces reverts to being parsed as a Markdown code block.
+  The second and third stat cards were rendering as literal `<div...>`
+  text in the browser, not broken Python — only visible by actually
+  loading the page, not from a lint or test. Fixed by building each card
+  as a single line with no internal newlines/indentation; documented in
+  `stat_card_row()`'s docstring so the next multi-card HTML helper doesn't
+  reintroduce it.
+- All colors/spacing centralized into CSS custom properties (`--wsync-*`)
+  at the top of `inject_css()` instead of scattered hex literals, so the
+  palette can be adjusted in one place.
+
 ## Post-Phase-5 — explicit landing page instead of auto-running on load (2026-10-06)
 
 - **The app no longer runs a case the instant it loads.** Previously it

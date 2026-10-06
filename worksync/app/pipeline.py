@@ -309,8 +309,52 @@ def detect_vertical(columns: list[str]) -> list[VerticalMatch]:
         matches.append(
             VerticalMatch(key=key, label=spec.label, coverage=coverage, overlap=len(mapping), exact=exact, fuzzy=fuzzy)
         )
-    matches.sort(key=lambda m: (m.coverage, m.overlap), reverse=True)
+    # Rank by number of matched columns (evidence), not by coverage — coverage
+    # measures data completeness and favours verticals with small schemas.
+    matches.sort(key=lambda m: (m.overlap, m.coverage), reverse=True)
     return matches
+
+
+MIN_EVIDENCE_COLUMNS = 3  # fewer matched columns than this could be coincidence
+MAX_RUNNER_UP_RATIO = 0.25  # runner-up may match at most 25% as many columns as the winner
+COMPLETE_DATA_COVERAGE = 0.6  # below this, the vertical is known but inputs are thin
+
+
+@dataclass
+class DetectionResult:
+    """Two separate answers: *which* vertical (status) and *how complete* the
+    data is for it (best.coverage). A partial loan file is unambiguously a
+    loan file — incompleteness is a data-quality warning, not doubt."""
+
+    status: str  # "declared" | "ambiguous" | "none"
+    best: VerticalMatch | None
+    runner_up: VerticalMatch | None
+    matches: list[VerticalMatch]
+
+    @property
+    def data_complete(self) -> bool:
+        return self.best is not None and self.best.coverage >= COMPLETE_DATA_COVERAGE
+
+
+def classify_upload(columns: list[str]) -> DetectionResult:
+    """Declares a vertical when the evidence is decisive: at least
+    MIN_EVIDENCE_COLUMNS distinct columns match it, and no other vertical
+    comes close (runner-up ≤ MAX_RUNNER_UP_RATIO × winner's matches).
+    "ambiguous" is reserved for genuinely unclear files — too few matching
+    columns, or two verticals both matching substantially."""
+    matches = detect_vertical(columns)
+    best = matches[0] if matches else None
+    runner_up = matches[1] if len(matches) > 1 else None
+
+    if best is None or best.overlap == 0:
+        status = "none"
+    elif best.overlap >= MIN_EVIDENCE_COLUMNS and (
+        runner_up is None or runner_up.overlap <= best.overlap * MAX_RUNNER_UP_RATIO
+    ):
+        status = "declared"
+    else:
+        status = "ambiguous"
+    return DetectionResult(status=status, best=best, runner_up=runner_up, matches=matches)
 
 
 def canonicalize_uploaded_columns(df: pd.DataFrame, vertical_key: str) -> pd.DataFrame:

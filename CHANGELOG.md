@@ -2,6 +2,29 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — decisive vertical declaration (2026-10-06)
+
+- **Split "which vertical is this?" from "how complete is the data?"**
+  Detection previously used one number — coverage (matched columns ÷ the
+  vertical's full schema) — for both. A file with 8 loan columns and zero
+  columns from any other vertical scored 32% and was shown as a "possible
+  match," even though it is unambiguously a loan file; it's just
+  incomplete. New `classify_upload()` declares a vertical when the evidence
+  is decisive (≥3 matched columns, and the runner-up matches ≤25% as many),
+  and reports thin data as a separate "incomplete data" warning.
+- Verticals are now ranked by number of matched columns (evidence) rather
+  than coverage, which favoured verticals with smaller schemas.
+- "Ambiguous" is now reserved for genuinely unclear files: fewer than 3
+  recognizable columns, or two verticals both matching substantially. A test
+  pins this: `["Age", "Sex", "Time", "Amount"]` (two insurance columns, two
+  BNPL columns) must stay ambiguous rather than be forced into a vertical.
+- Added `worksync/samples/blind/`: six neutrally-named test files with messy
+  headers built from real rows (labels removed), plus an answer key. All six
+  are now classified correctly — including the partial loan file (declared,
+  flagged incomplete) and an unrelated HR file (not a vertical).
+
+93 tests passing.
+
 ## Post-Phase-5 — robust upload detection + real accuracy gains (2026-10-06)
 
 Prompted by: "I want the accuracy to be better... and if a random csv file

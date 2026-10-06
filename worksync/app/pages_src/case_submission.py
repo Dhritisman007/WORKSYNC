@@ -23,8 +23,9 @@ from worksync.app.pipeline import (
     VERTICALS,
     _ensure_id,
     build_narrative,
+    MIN_EVIDENCE_COLUMNS,
     canonicalize_uploaded_columns,
-    detect_vertical,
+    classify_upload,
     get_orchestrator,
     load_data,
     parse_uploaded_file,
@@ -136,38 +137,50 @@ def _step_case_data(vertical_key: str) -> tuple[Any, int, str]:
         st.error("The uploaded file has no rows.")
         st.stop()
 
-    matches = detect_vertical(list(upload_df.columns))
-    best = matches[0] if matches else None
+    detection = classify_upload(list(upload_df.columns))
+    matches = detection.matches
+    best = detection.best
     resolved_key = vertical_key
 
-    HIGH_CONFIDENCE = 0.6
-    LOW_CONFIDENCE = 0.3
-
-    if best and best.coverage >= HIGH_CONFIDENCE:
+    if detection.status == "declared":
         if best.key != vertical_key:
-            # Confident, unambiguous match that disagrees with Step 1 —
-            # declare and switch automatically rather than making the user
-            # click a confirm button for something this clear.
+            # Decisive evidence that disagrees with Step 1 — declare and
+            # switch automatically rather than asking the user to confirm.
             st.session_state["cs_vertical"] = best.key
             st.rerun()
+        others = f"{detection.runner_up.overlap} for any other vertical" if detection.runner_up else "none for any other"
         st.markdown(
-            design.badge(f"✓ Declared vertical: {best.label} ({best.coverage:.0%} column match)", "success"),
+            design.badge(f"✓ Declared vertical: {best.label}", "success"),
             unsafe_allow_html=True,
         )
-        if best.fuzzy:
-            st.caption(f"{best.exact} column(s) matched exactly, {best.fuzzy} matched by name similarity.")
+        st.caption(
+            f"{best.overlap} of the uploaded columns belong to {best.label}; {others}."
+            + (f" ({best.fuzzy} matched despite naming differences.)" if best.fuzzy else "")
+        )
+        if not detection.data_complete:
+            st.markdown(
+                design.badge(
+                    f"⚠ Incomplete data: {best.overlap} of {round(best.overlap / best.coverage)} expected "
+                    f"{best.label} inputs present — decisions will be less reliable",
+                    "warning",
+                ),
+                unsafe_allow_html=True,
+            )
         resolved_key = best.key
-    elif best and best.coverage >= LOW_CONFIDENCE:
+    elif detection.status == "ambiguous":
+        runner = detection.runner_up
+        reason = (
+            f"only {best.overlap} recognizable column(s) — too few to be sure"
+            if best.overlap < MIN_EVIDENCE_COLUMNS
+            else f"columns match both {best.label} ({best.overlap}) and {runner.label} ({runner.overlap})"
+        )
         st.markdown(
-            design.badge(f"⚠ Possible match: {best.label} ({best.coverage:.0%} column match) — confirm below", "warning"),
+            design.badge(f"⚠ Ambiguous file: {reason} — choose the vertical in Step 1", "warning"),
             unsafe_allow_html=True,
         )
-        if best.key != vertical_key and st.button(f"Use {best.label} instead"):
-            st.session_state["cs_vertical"] = best.key
-            st.rerun()
     else:
         st.markdown(
-            design.badge("✕ No confident schema match — pick the vertical manually in Step 1", "critical"),
+            design.badge("✕ Not a recognized vertical — no columns match any known schema", "critical"),
             unsafe_allow_html=True,
         )
 

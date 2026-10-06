@@ -247,3 +247,52 @@ def test_messy_headers_still_produce_a_working_decision_not_just_a_correct_guess
     orchestrator, _ = get_orchestrator("loan")
     result = orchestrator.run_case_with_detail(case)
     assert result.decision.outcome.value in {"approve", "reject", "escalate"}
+
+
+def test_partial_file_is_declared_decisively_but_flagged_incomplete():
+    """8 loan columns and nothing else is unambiguously a loan file — the
+    vertical must be declared, with incompleteness reported separately."""
+    from worksync.app.pipeline import classify_upload
+
+    cols = ["Sk Id Curr", "Amt Income Total", "Amt Credit", "Amt Annuity",
+            "Days Birth", "Code Gender", "Ext Source 2", "Ext Source 3", "Submitted By"]
+    result = classify_upload(cols)
+    assert result.status == "declared"
+    assert result.best.key == "loan"
+    assert result.data_complete is False
+
+
+def test_full_sample_is_declared_and_complete():
+    from worksync.app.pipeline import classify_upload
+
+    df = pd.read_csv(SAMPLES_DIR / "insurance_sample.csv")
+    result = classify_upload(list(df.columns))
+    assert result.status == "declared"
+    assert result.best.key == "insurance"
+    assert result.data_complete is True
+
+
+def test_generic_columns_shared_by_verticals_stay_ambiguous():
+    """Columns like Age/Sex (insurance) and Time/Amount (BNPL) aren't enough
+    evidence to declare anything — must not be forced into a vertical."""
+    from worksync.app.pipeline import classify_upload
+
+    result = classify_upload(["Age", "Sex", "Time", "Amount"])
+    assert result.status == "ambiguous"
+
+
+def test_unrelated_file_is_not_a_vertical():
+    from worksync.app.pipeline import classify_upload
+
+    result = classify_upload(["Employee ID", "Department", "Salary", "Joining Date"])
+    assert result.status == "none"
+
+
+def test_every_verticals_own_schema_is_declared_as_itself():
+    from worksync.app.pipeline import classify_upload
+
+    for key, factory in VERTICALS.items():
+        spec = factory()
+        result = classify_upload(list(spec.raw_columns))
+        assert result.status == "declared", key
+        assert result.best.key == key

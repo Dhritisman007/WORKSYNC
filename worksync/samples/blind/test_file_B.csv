@@ -1,0 +1,6 @@
+Submitted By,Address Match Score,Document Quality Score,Selfie Liveness Score,Pep Match,Age Years,Sanctions Match,Device Risk Score,Country Of Residence,Application Velocity 24H,Adverse Media Hit,Id Type,Applicant Id
+branch-portal,0.7614,0.7623,0.7458,False,68,True,0.2655,IN,1,False,voter_id,A000008
+branch-portal,0.9322,0.9502,1.0,True,27,False,0.3056,SG,0,False,voter_id,A000009
+branch-portal,0.7277,0.6971,0.6953,False,60,False,0.09,SG,2,False,national_id,A004672
+branch-portal,0.66,0.8545,0.7332,False,47,False,0.1138,SG,0,False,drivers_license,A002617
+branch-portal,0.8548,0.7252,1.0,False,68,False,0.3399,AE,2,False,passport,A004190

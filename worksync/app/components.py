@@ -83,7 +83,10 @@ def render_compliance_block(result: CaseResult) -> None:
         color = design.SEVERITY_HEX.get(sev, design.TEXT_FAINT)
         kind = design.SEVERITY_KIND.get(sev, "neutral")
         sev_label = {"hard": "CRITICAL", "soft": "WARN", "info": "INFO"}.get(sev, sev.upper())
-        verified = "verified" if f.verified else "not yet verified"
+        if f.basis == "internal_policy":
+            verified = "internal policy"
+        else:
+            verified = "citation checked" if f.verified else "citation not yet checked"
         st.markdown(
             f'<div class="ws-flag" style="--sev:{color};">'
             f'<div class="ws-flag-title">{f.rule_id} '

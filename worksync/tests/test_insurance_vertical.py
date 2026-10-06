@@ -97,9 +97,15 @@ def test_no_evidence_compound_condition_requires_both_missing():
     assert "INS-NOEVIDENCE-001" in fired
 
 
-def test_all_rules_are_unverified_pending_team_review():
+def test_every_regulation_rule_has_a_checked_citation():
+    """Regulation-based rules must cite a source that was checked against
+    the regulator's text; internal-policy thresholds claim no regulation."""
     ruleset = load_ruleset(RULES_PATH)
-    assert all(rule.verified is False for rule in ruleset.rules)
+    for rule in ruleset.rules:
+        if rule.basis == "regulation":
+            assert rule.verified and rule.reference_url and rule.verified_on, rule.id
+        else:
+            assert rule.verified is False, rule.id
 
 
 @requires_artifacts

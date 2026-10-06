@@ -101,6 +101,9 @@ class ComplianceFlag(BaseModel):
     source_regulation: str
     severity: Severity
     action: str
+    # "regulation" | "internal_policy" — defaulted so audit logs written
+    # before this field existed still load.
+    basis: str = "regulation"
     verified: bool = False
     triggered: bool = True
     evidence: dict[str, Any] = Field(default_factory=dict)

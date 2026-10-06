@@ -51,3 +51,40 @@ def test_ruleset_fires_only_matching_rules():
 
     flags = evaluate_ruleset(ruleset, {"on_watchlist": False, "amount": 1000})
     assert flags == []
+
+
+def _rule(**overrides):
+    base = dict(id="R1", description="d", source_regulation="s", severity="hard",
+                condition={"field": "x", "op": "eq", "value": 1}, action="reject")
+    base.update(overrides)
+    return base
+
+
+def test_verified_rule_without_a_source_url_is_rejected():
+    import pytest
+    from pydantic import ValidationError
+
+    from worksync.core.rule_engine.engine import RuleDef
+
+    with pytest.raises(ValidationError):
+        RuleDef.model_validate(_rule(verified=True))
+
+
+def test_internal_policy_rule_cannot_claim_verification():
+    import pytest
+    from pydantic import ValidationError
+
+    from worksync.core.rule_engine.engine import RuleDef
+
+    with pytest.raises(ValidationError):
+        RuleDef.model_validate(_rule(basis="internal_policy", verified=True,
+                                     reference_url="https://x", verified_on="2026-10-06"))
+
+
+def test_flag_carries_the_rules_basis():
+    from worksync.core.rule_engine.engine import RuleSet, evaluate_ruleset
+
+    rs = RuleSet.model_validate({"version": "1", "vertical": "t",
+                                 "rules": [_rule(basis="internal_policy")]})
+    flags = evaluate_ruleset(rs, {"x": 1})
+    assert flags[0].basis == "internal_policy"

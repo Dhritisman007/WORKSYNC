@@ -1,12 +1,13 @@
-# Illustrative RBI digital-lending / responsible-lending checks for the loan
-# vertical. Every rule is `verified: false` and cites only general guidance
-# documents, never a specific clause or circular number — per the brief,
-# clause numbers must never be invented by AI and are the team's job to
-# verify against the current RBI Master Directions before any rule here is
-# trusted. Conditions reference the engineered features from
-# verticals/loan/adapter.py (see NUMERIC_FEATURES / CATEGORICAL_FEATURES /
-# BOOLEAN_FEATURES there for what's available).
-version: "0.1.0"
+# Loan-vertical compliance rules. Each rule declares its `basis`:
+#   regulation       — implements a requirement in a named RBI direction.
+#                      `verified: true` means the cited paragraph was read in
+#                      the regulator's official text on `verified_on`, at
+#                      `reference_url` — re-check it there before relying on it.
+#   internal_policy  — a risk-appetite threshold no regulation prescribes
+#                      (nothing to verify; the team owns the number).
+# Clause numbers below were copied from the official text, not recalled.
+# Conditions reference the engineered features in verticals/loan/adapter.py.
+version: "0.2.0"
 vertical: loan
 
 rules:
@@ -16,11 +17,15 @@ rules:
       external score and no stated occupation) — should not be auto-decided
       either way.
     source_regulation: >
-      RBI digital lending guidance on assessing creditworthiness before
-      extending credit (general reference — specific clause not yet
-      verified against the current Master Directions)
+      RBI (Digital Lending) Directions, 2025 (RBI/2025-26/36, 8 May 2025),
+      Chapter III, para 7(i) — before extending any loan the RE must obtain
+      the borrower's economic profile, at a minimum age, occupation and
+      income, to assess creditworthiness.
     severity: hard
-    verified: false
+    basis: regulation
+    verified: true
+    reference_url: https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=12848
+    verified_on: "2026-10-06"
     action: escalate
     condition:
       all:
@@ -36,11 +41,12 @@ rules:
       Annuity-to-income ratio exceeds 0.6 — debt burden appears
       unsustainable relative to income.
     source_regulation: >
-      RBI Fair Practices Code / responsible-lending expectation that credit
-      extended should be commensurate with repayment capacity (general
-      reference — specific clause not yet verified)
+      Internal credit policy. The 0.6 cap is our risk appetite — RBI's
+      Digital Lending Directions, 2025 require a creditworthiness assessment
+      (para 7(i)) but prescribe no debt-to-income limit.
     severity: hard
-    verified: false
+    basis: internal_policy
+    reference_url: https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=12848
     action: reject
     condition:
       field: annuity_income_ratio
@@ -52,11 +58,12 @@ rules:
       Applicant is under 21 — extra scrutiny expected before extending
       unsecured digital credit to a very young applicant.
     source_regulation: >
-      RBI digital lending guidance on responsible lending to first-time /
-      young borrowers (general reference — specific clause not yet
-      verified)
+      Internal credit policy. Age must be captured under RBI Digital Lending
+      Directions, 2025 para 7(i), but no RBI direction sets a minimum age of
+      21 — the threshold is ours.
     severity: hard
-    verified: false
+    basis: internal_policy
+    reference_url: https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=12848
     action: escalate
     condition:
       field: age_years
@@ -69,10 +76,10 @@ rules:
       leveraged relative to stated income; worth a human look even if the
       model score alone wouldn't flag it.
     source_regulation: >
-      General over-leverage / responsible-lending consideration (illustrative
-      only — not tied to a specific RBI clause; not yet verified)
+      Internal credit policy — over-leverage review threshold (8x). Not
+      prescribed by any RBI direction.
     severity: soft
-    verified: false
+    basis: internal_policy
     action: annotate
     condition:
       field: credit_income_ratio
@@ -84,11 +91,15 @@ rules:
       Standard supporting identity document (FLAG_DOCUMENT_3 in the source
       data) was not provided with the application.
     source_regulation: >
-      RBI KYC Master Direction requirement to hold valid identity
-      documentation on file (general reference — specific clause not yet
-      verified)
+      RBI Master Direction – Know Your Customer (KYC) Direction, 2016
+      (updated 14 Aug 2025), Section 16 — for CDD of an individual the RE
+      must obtain proof of identity and address (Aadhaar / an Officially
+      Valid Document) and PAN or Form 60.
     severity: soft
-    verified: false
+    basis: regulation
+    verified: true
+    reference_url: https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=11566
+    verified_on: "2026-10-06"
     action: annotate
     condition:
       field: doc3_provided

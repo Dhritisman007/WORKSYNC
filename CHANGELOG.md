@@ -2,6 +2,37 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — rule citations checked against the source (2026-10-06)
+
+- **Every rule now declares a `basis`: `regulation` or `internal_policy`.**
+  Previously all 17 rules were `verified: false` with only general-guidance
+  citations, so the Rule Sets page showed "not verified" on everything —
+  including rules that never claimed to come from a regulation. The two
+  cases are different: a regulation citation can be checked; a business
+  threshold (DTI 0.6, age 21, BNPL amount 10,000) has nothing to check.
+- **Regulation citations were checked against the official text, not
+  recalled.** Each section number was copied from the regulator's own page
+  or PDF, and the rule carries `reference_url` and `verified_on`:
+  - RBI (Digital Lending) Directions, 2025, para 7(i) — creditworthiness /
+    economic profile (LOAN-KYC-001).
+  - RBI KYC Master Direction, 2016 (updated 14 Aug 2025): Section 16 (CDD
+    documents — LOAN-DOC-001, KYC-DOC-001), Sections 10 and 51(a) (sanctions
+    lists — KYC-SANCTIONS-001), Section 41 (PEPs — KYC-PEP-001).
+  - IRDAI (Insurance Fraud Monitoring Framework) Guidelines, 2025
+    (IRDAI/IID/GDL/MISC/112/10/2025), para 5.4.1 — insurers must define Red
+    Flag Indicators; four insurance rules are our RFIs under it.
+- **Where no regulation prescribes the rule, it says so.** DTI, age, leverage,
+  adverse media, velocity, both BNPL amount rules and the insurance
+  high-value rule are now `internal_policy`. Where a related regulation
+  exists, it is linked as context, not claimed as the source.
+- **The schema enforces this:** `RuleDef` rejects `verified: true` without a
+  URL and date, and rejects `verified: true` on an internal-policy rule.
+  "Checked" means checked against the text on that date, not legal sign-off:
+  regulations change, so the date and link are there to re-check.
+- **Rule Sets page:** each rule is now one card, with its condition inside it
+  as a readable expression (`annuity_income_ratio > 0.6`, `AND`/`OR`/`is
+  missing`) instead of a separate raw-JSON expander underneath.
+
 ## Post-Phase-5 — decisive vertical declaration (2026-10-06)
 
 - **Split "which vertical is this?" from "how complete is the data?"**

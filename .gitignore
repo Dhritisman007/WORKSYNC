@@ -7,3 +7,10 @@ worksync/data/processed/**/*.csv
 worksync/logs/audit/*.jsonl
 worksync/verticals/*/model/artifacts/
 .DS_Store
+
+# Local tool state — contains credentials, never commit
+.jetro/
+**/.jetro/
+
+# macOS AppleDouble files (this drive is exFAT)
+._*

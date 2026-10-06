@@ -78,9 +78,15 @@ def test_pep_match_triggers_hard_escalate_rule():
     assert fired["KYC-PEP-001"].action == "escalate"
 
 
-def test_all_rules_are_unverified_pending_team_review():
+def test_every_regulation_rule_has_a_checked_citation():
+    """Regulation-based rules must cite a source that was checked against
+    the regulator's text; internal-policy thresholds claim no regulation."""
     ruleset = load_ruleset(RULES_PATH)
-    assert all(rule.verified is False for rule in ruleset.rules)
+    for rule in ruleset.rules:
+        if rule.basis == "regulation":
+            assert rule.verified and rule.reference_url and rule.verified_on, rule.id
+        else:
+            assert rule.verified is False, rule.id
 
 
 @requires_artifacts

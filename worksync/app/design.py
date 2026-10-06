@@ -88,6 +88,17 @@ def inject_css() -> None:
         .ws-flag-title {{ font-weight: 600; font-size: 13.5px; }}
         .ws-flag-desc {{ font-size: 12.5px; color: var(--ws-text-muted); margin-top: 2px; }}
         .ws-flag-meta {{ font-size: 11px; color: var(--ws-text-faint); margin-top: 4px; }}
+        .ws-flag-meta a {{ color: var(--ws-accent); text-decoration: none; }}
+        .ws-flag-meta a:hover {{ text-decoration: underline; }}
+        .ws-flag details {{ margin-top: .55rem; border-top: 1px solid var(--ws-border); padding-top: .45rem; }}
+        .ws-flag summary {{ cursor: pointer; font-size: 11.5px; color: var(--ws-text-muted); list-style: none; user-select: none; }}
+        .ws-flag summary::-webkit-details-marker {{ display: none; }}
+        .ws-flag summary::before {{ content: "▸"; display: inline-block; width: 1em; transition: transform .12s ease; }}
+        .ws-flag details[open] summary::before {{ transform: rotate(90deg); }}
+        .ws-flag summary:hover {{ color: var(--ws-text); }}
+        .ws-cond {{ margin: .4rem 0 0 0; padding: .5rem .7rem; border-radius: 5px; background: var(--ws-bg);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--ws-text); line-height: 1.6; }}
+        .ws-cond-kw {{ color: var(--ws-accent); font-weight: 600; }}
 
         .ws-step {{ display:flex; align-items:center; gap:.5rem; font-size: 13px; padding: .25rem 0; }}
         .ws-step-dot {{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }}

@@ -78,10 +78,13 @@ and Audit Agent tamper/replay tests.
    string columns (insurance). This is the strongest evidence for the
    framework-first claim: the datasets differ maximally, the core doesn't
    move at all.
-2. **Every compliance rule across all four verticals is `verified: false`**
-   with only general-guidance citations — a deliberate, enforced discipline
-   (checked by a unit test per vertical) against an AI-authored rule ever
-   looking more authoritative than it is.
+2. **Every compliance rule declares its basis.** A `regulation` rule cites
+   the section as copied from the regulator's official text, with the source
+   URL and the date it was checked; an `internal_policy` rule is a threshold
+   no regulation prescribes and can never be marked verified. The schema
+   rejects a "verified" rule without a source, and a unit test per vertical
+   enforces the split, so an AI-drafted rule can't look more authoritative
+   than it is.
 3. **The Manager Agent's decision logic is fixed in code; only thresholds
    are configuration** — this is what makes "the Manager needs no
    structural changes" checkable rather than just asserted.

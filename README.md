@@ -73,12 +73,12 @@ See `worksync/docs/project_writeup.md` for the full write-up and
   orchestrator, and a dummy-vertical pipeline test proving the pipeline runs
   end to end and that audit-log tampering is detected.
 - Phase 3 (loan reference vertical): Home Credit adapter, calibrated
-  LightGBM (+ XGBoost baseline) with SHAP, illustrative unverified RBI/KYC
-  rules, decision bands, and 20 real sample cases run end to end. See
+  LightGBM (+ XGBoost baseline) with SHAP, RBI/KYC rules (citations
+  checked against the official text, or marked internal policy), decision bands, and 20 real sample cases run end to end. See
   `worksync/verticals/loan/README.md` and `worksync/docs/loan_model_report.md`.
 - Phase 4a (KYC/AML vertical): seeded synthetic identity + PEP/sanctions
-  data, calibrated LightGBM (+ XGBoost baseline) with SHAP, illustrative
-  unverified AML/KYC rules (sanctions/PEP hard flags), and 20 sample cases
+  data, calibrated LightGBM (+ XGBoost baseline) with SHAP, AML/KYC rules
+  citing the RBI KYC Master Direction (sanctions/PEP hard flags), and 20 sample cases
   (including forced sanctions/PEP hits) run end to end through the
   unchanged core agents. See `worksync/verticals/kyc_aml/README.md` and
   `worksync/docs/kyc_aml_model_report.md`.
@@ -89,7 +89,8 @@ See `worksync/docs/project_writeup.md` for the full write-up and
   See `worksync/verticals/bnpl/README.md` and `worksync/docs/bnpl_model_report.md`.
 - Phase 4c (insurance claims vertical): Kaggle Vehicle Insurance Claim
   Fraud Detection dataset, calibrated LightGBM (+ XGBoost baseline) with
-  SHAP, 5 illustrative unverified IRDAI-style rules (early-claim timing,
+  SHAP, 5 claims rules (4 Red Flag Indicators under
+  IRDAI's 2025 Fraud Monitoring Guidelines, 1 internal policy) (early-claim timing,
   high value, address change, past claims, missing evidence), and 20
   sample cases (including 2 forced known-fraud rows) run end to end. All
   four BFSI verticals are now built on the same unchanged core agents. See

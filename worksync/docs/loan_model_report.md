@@ -15,9 +15,9 @@ are from an actual run against `data/raw/loan/application_train.csv`
 
 | Model | AUC | KS | Brier |
 |---|---|---|---|
-| lightgbm_raw | 0.7562 | 0.3887 | 0.1844 |
-| lightgbm_calibrated (primary) | 0.7562 | 0.3885 | 0.0678 |
-| xgboost_baseline | 0.7565 | 0.3851 | 0.1882 |
+| lightgbm_raw | 0.7626 | 0.3991 | 0.1808 |
+| lightgbm_calibrated (primary) | 0.7616 | 0.3953 | 0.0674 |
+| xgboost_baseline | 0.7622 | 0.393 | 0.1856 |
 
 ## Confusion matrix at 0.5 threshold
 
@@ -25,22 +25,22 @@ are from an actual run against `data/raw/loan/application_train.csv`
 
 |  | pred: repay | pred: default |
 |---|---|---|
-| actual: repay | 40919 | 15619 |
-| actual: default | 1682 | 3283 |
+| actual: repay | 41347 | 15191 |
+| actual: default | 1675 | 3290 |
 
 **lightgbm_calibrated (primary)**
 
 |  | pred: repay | pred: default |
 |---|---|---|
-| actual: repay | 56423 | 115 |
-| actual: default | 4832 | 133 |
+| actual: repay | 56442 | 96 |
+| actual: default | 4850 | 115 |
 
 **xgboost_baseline**
 
 |  | pred: repay | pred: default |
 |---|---|---|
-| actual: repay | 40858 | 15680 |
-| actual: default | 1685 | 3280 |
+| actual: repay | 41117 | 15421 |
+| actual: default | 1671 | 3294 |
 
 ## Notes
 

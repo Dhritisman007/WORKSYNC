@@ -19,6 +19,7 @@ import pytest
 from worksync.app.pipeline import (
     VERTICALS,
     _ensure_id,
+    canonicalize_uploaded_columns,
     detect_vertical,
     get_orchestrator,
     parse_uploaded_file,
@@ -171,3 +172,78 @@ def test_detect_vertical_recognizes_kyc_aml_sample():
 def test_detect_vertical_returns_zero_coverage_for_unrelated_columns():
     matches = detect_vertical(["foo", "bar", "baz"])
     assert all(m.coverage == 0 for m in matches)
+
+
+def test_detect_vertical_is_case_and_spacing_insensitive():
+    """A 'random' CSV rarely matches the exact header casing/spacing of the
+    original source file — detection must still work."""
+    df = pd.read_csv(SAMPLES_DIR / "loan_sample.csv")
+    messy_columns = [c.lower().replace("_", " ") for c in df.columns]
+    matches = detect_vertical(messy_columns)
+    assert matches[0].key == "loan"
+    assert matches[0].coverage > 0.9
+    assert matches[0].fuzzy == 0  # normalization alone should resolve these, no fuzzy needed
+    assert all(m.coverage == 0 for m in matches[1:])
+
+
+def test_detect_vertical_tolerates_minor_typos_via_fuzzy_matching():
+    columns = ["AMT_INCOME_TOTA", "AMT_CREDT", "CODE_GENDER", "FLAG_OWN_CAR"]  # dropped letters
+    matches = detect_vertical(columns)
+    assert matches[0].key == "loan"
+    assert matches[0].fuzzy >= 2
+
+
+def test_no_vertical_fuzzy_matches_another_verticals_raw_columns():
+    """Guards against the fuzzy matcher creating false cross-vertical
+    positives: each vertical's own raw columns must score zero coverage
+    against every OTHER vertical's schema."""
+    for key, factory in VERTICALS.items():
+        spec = factory()
+        if not spec.raw_columns:
+            continue
+        matches = detect_vertical(list(spec.raw_columns))
+        top = matches[0]
+        assert top.key == key, f"{key}'s own columns best-matched {top.key} instead"
+        for m in matches:
+            if m.key != key:
+                assert m.coverage < 0.3, f"{key}'s columns scored {m.coverage:.0%} against {m.key}"
+
+
+def test_canonicalize_uploaded_columns_renames_messy_headers():
+    df = pd.read_csv(SAMPLES_DIR / "loan_sample.csv")
+    messy = df.rename(columns={c: c.lower().replace("_", " ") for c in df.columns})
+    canonical = canonicalize_uploaded_columns(messy, "loan")
+    assert "AMT_INCOME_TOTAL" in canonical.columns
+    assert canonical.iloc[0]["AMT_INCOME_TOTAL"] == df.iloc[0]["AMT_INCOME_TOTAL"]
+
+
+@pytest.mark.skipif(
+    not Path("worksync/verticals/loan/model/artifacts/lgbm_calibrated.joblib").exists(),
+    reason="loan model artifacts not present",
+)
+def test_messy_headers_still_produce_a_working_decision_not_just_a_correct_guess():
+    """The point of canonicalization: a correctly-detected vertical must
+    also actually consume the file's data, not just get its label right."""
+    from worksync.app.pipeline import VERTICALS as _VERTICALS
+    from worksync.app.pipeline import get_orchestrator
+
+    df = pd.read_csv(SAMPLES_DIR / "loan_sample.csv")
+    messy = df.rename(columns={c: c.lower().replace("_", " ") for c in df.columns})
+
+    matches = detect_vertical(list(messy.columns))
+    assert matches[0].key == "loan"
+
+    canonical = canonicalize_uploaded_columns(messy, "loan")
+    spec = _VERTICALS["loan"]()
+    row = _ensure_id(canonical.iloc[0], spec.id_col, 0)
+    case = spec.row_to_case(row, 0)
+
+    # If canonicalization hadn't worked, every engineered feature would be
+    # None/missing and this would still "run" but be meaningless — assert
+    # real values actually made it through.
+    assert case.features["income_total"] is not None
+    assert case.features["credit_amount"] is not None
+
+    orchestrator, _ = get_orchestrator("loan")
+    result = orchestrator.run_case_with_detail(case)
+    assert result.decision.outcome.value in {"approve", "reject", "escalate"}

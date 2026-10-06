@@ -23,6 +23,7 @@ from worksync.app.pipeline import (
     VERTICALS,
     _ensure_id,
     build_narrative,
+    canonicalize_uploaded_columns,
     detect_vertical,
     get_orchestrator,
     load_data,
@@ -139,31 +140,64 @@ def _step_case_data(vertical_key: str) -> tuple[Any, int, str]:
     best = matches[0] if matches else None
     resolved_key = vertical_key
 
-    if best and best.coverage >= 0.4 and best.key != vertical_key:
-        st.warning(
-            f"This file's columns match **{best.label}** ({best.coverage:.0%}), not the "
-            f"**{VERTICALS[vertical_key]().label}** selected in Step 1."
-        )
-        if st.button(f"Use detected vertical ({best.label}) instead"):
+    HIGH_CONFIDENCE = 0.6
+    LOW_CONFIDENCE = 0.3
+
+    if best and best.coverage >= HIGH_CONFIDENCE:
+        if best.key != vertical_key:
+            # Confident, unambiguous match that disagrees with Step 1 —
+            # declare and switch automatically rather than making the user
+            # click a confirm button for something this clear.
             st.session_state["cs_vertical"] = best.key
             st.rerun()
-    elif best is None or best.coverage == 0:
-        st.warning("Couldn't match these columns to any known vertical schema.")
+        st.markdown(
+            design.badge(f"✓ Declared vertical: {best.label} ({best.coverage:.0%} column match)", "success"),
+            unsafe_allow_html=True,
+        )
+        if best.fuzzy:
+            st.caption(f"{best.exact} column(s) matched exactly, {best.fuzzy} matched by name similarity.")
+        resolved_key = best.key
+    elif best and best.coverage >= LOW_CONFIDENCE:
+        st.markdown(
+            design.badge(f"⚠ Possible match: {best.label} ({best.coverage:.0%} column match) — confirm below", "warning"),
+            unsafe_allow_html=True,
+        )
+        if best.key != vertical_key and st.button(f"Use {best.label} instead"):
+            st.session_state["cs_vertical"] = best.key
+            st.rerun()
+    else:
+        st.markdown(
+            design.badge("✕ No confident schema match — pick the vertical manually in Step 1", "critical"),
+            unsafe_allow_html=True,
+        )
 
     with st.expander("Column match scores"):
         st.dataframe(
             pd.DataFrame(
-                [{"vertical": m.label, "columns matched": m.overlap, "coverage": f"{m.coverage:.0%}"} for m in matches]
+                [
+                    {
+                        "vertical": m.label,
+                        "exact matches": m.exact,
+                        "fuzzy matches": m.fuzzy,
+                        "coverage": f"{m.coverage:.0%}",
+                    }
+                    for m in matches
+                ]
             ),
             width="stretch",
             hide_index=True,
         )
 
+    # Rename columns to the resolved vertical's canonical names (handles
+    # case/spacing/minor naming differences) so the adapter's exact-case
+    # lookups actually populate from this file, not just the detector.
+    upload_df = canonicalize_uploaded_columns(upload_df, resolved_key)
+
     idx = 0
     if len(upload_df) > 1:
         idx = st.number_input("Row in uploaded file", min_value=0, max_value=len(upload_df) - 1, value=0, step=1)
     row = upload_df.iloc[idx]
-    with st.expander("Preview uploaded row"):
+    with st.expander("Preview uploaded row (after column matching)"):
         st.dataframe(pd.DataFrame(sorted(row.items()), columns=["column", "value"]), width="stretch", hide_index=True)
 
     return row, idx, resolved_key

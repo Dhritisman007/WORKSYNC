@@ -105,9 +105,12 @@ def main() -> None:
 
     print("training LightGBM (primary) ...")
     lgbm = lgb.LGBMClassifier(
-        n_estimators=300,
+        n_estimators=250,
         learning_rate=0.05,
-        num_leaves=15,
+        num_leaves=31,
+        min_child_samples=15,
+        subsample=0.8,
+        colsample_bytree=0.8,
         scale_pos_weight=scale_pos_weight,
         random_state=SEED,
         verbose=-1,

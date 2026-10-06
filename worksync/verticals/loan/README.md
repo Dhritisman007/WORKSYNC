@@ -32,16 +32,23 @@ Data: [Home Credit Default Risk](https://www.kaggle.com/c/home-credit-default-ri
 ## Regenerating
 
 ```bash
-# 1. put application_train.csv (and optionally the other Home Credit files)
-#    in worksync/data/raw/loan/
+# 1. put application_train.csv and bureau.csv (and optionally the other
+#    Home Credit files) in worksync/data/raw/loan/
+python -m worksync.verticals.loan.model.build_bureau_features  # once, or whenever bureau.csv changes
 python -m worksync.verticals.loan.model.train
 python -m worksync.verticals.loan.run_samples 20
 ```
 
 ## Known simplifications (see CHANGELOG.md for the full reasoning)
 
-- No joins against `bureau.csv` / `previous_application.csv` / etc. — only
-  `application_train.csv`'s own columns are used.
+- **`bureau.csv` is joined** (aggregated per applicant — see
+  `model/build_bureau_features.py`), but `previous_application.csv`,
+  `POS_CASH_balance.csv`, `credit_card_balance.csv`, and
+  `installments_payments.csv` are not — a further, not-yet-taken extension.
+  The bureau join only covers applicants present in Home Credit's own
+  `bureau.csv`; any new/uploaded case has no real bureau history to join
+  against (no live credit bureau API here), so those features come back
+  `None` for it, same as any other missing field.
 - `rules.yaml`'s conditions reference engineered features, not raw document
   scans — document/image inputs are metadata-only for now per the brief
   (OCR is a stretch goal).

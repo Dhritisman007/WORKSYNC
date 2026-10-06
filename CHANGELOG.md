@@ -2,6 +2,81 @@
 
 Design decisions and their reasons, logged as we go, for the project report.
 
+## Post-Phase-5 — robust upload detection + real accuracy gains (2026-10-06)
+
+Prompted by: "I want the accuracy to be better... and if a random csv file
+is uploaded it should be declared which vertical it belongs to... dead
+accurate." Scoped down first (see conversation): image/JPEG upload support
+was explicitly deferred — no vertical model consumes images, there's no
+labeled image dataset anywhere in this project, and the original brief
+scoped document/image handling as metadata-only. Everything below is CSV/
+JSON detection robustness and real, measured model-accuracy improvements.
+
+- **Detection is no longer brittle to column-name casing/spacing.**
+  `detect_vertical()` previously required exact-case header matches — a
+  genuinely "random" file almost never has those. Added `_normalize_col()`
+  (case/whitespace/separator-insensitive) and a fuzzy-matching fallback
+  (`difflib.SequenceMatcher`, threshold 0.88) for near-misses like typos or
+  minor abbreviations in `_match_columns()`. Guarded with a dedicated test
+  (`test_no_vertical_fuzzy_matches_another_verticals_raw_columns`) that
+  checks every vertical's own raw columns score zero coverage against every
+  *other* vertical — fuzzy matching must never create cross-vertical false
+  positives.
+- **Fixed a real correctness gap this surfaced: detecting the vertical
+  correctly doesn't mean the pipeline actually reads the file correctly.**
+  Every adapter does exact-case lookups (`row.get("AMT_INCOME_TOTAL")`), so
+  a file with slightly different headers would get the *right vertical
+  label* but *every feature would silently come back None* — a techni­cally
+  "declared" vertical producing a meaningless decision. Added
+  `canonicalize_uploaded_columns()`, which renames the uploaded DataFrame's
+  columns to the vertical's canonical names using the same matching logic
+  as detection, applied in Case Submission before the row ever reaches
+  `row_to_case()`. Verified end to end with a real messy-header loan CSV
+  (lowercase, spaces instead of underscores) in the running app: correctly
+  declared "Loan Approval," correctly populated `AMT_INCOME_TOTAL` /
+  `AMT_CREDIT` / etc. from the actual uploaded values, and produced a real
+  decision — not just a correct label.
+- **Case Submission's upload flow now auto-switches to a high-confidence
+  detected vertical (≥60% coverage)** instead of requiring a manual confirm
+  click — "declare" means declare, not "suggest and wait." Moderate
+  confidence (30–60%) still asks for confirmation; below 30% it says so
+  plainly and asks the user to pick manually rather than guessing.
+- **Loan model: joined `bureau.csv`** (Home Credit's own credit-bureau
+  history data, 1.7M rows / ~306k applicants) — the single highest-value
+  known feature addition for this dataset, previously flagged as "a natural
+  extension" in the Phase 3 changelog entry and now built. New
+  `model/build_bureau_features.py` aggregates it once per SK_ID_CURR
+  (count/active/overdue loan counts, credit sums, max overdue) into
+  `data/processed/loan_bureau_features.csv` (gitignored, regenerate via
+  `python -m worksync.verticals.loan.model.build_bureau_features`);
+  `adapter.py` looks up by SK_ID_CURR with a process-cached loader,
+  degrading to `None` for any case with no bureau history (every uploaded/
+  new case, since there's no live bureau API here — same honest missing-
+  data handling as any other field). **Real result: calibrated AUC 0.7562
+  → 0.7616, KS 0.3885 → 0.3953.** Modest, genuine, not fabricated.
+- **KYC/AML model: regularized hyperparameter retune** (num_leaves 15→31,
+  added `min_child_samples`/`subsample`/`colsample_bytree` for a dataset
+  this small, fewer estimators to compensate). **Real result: calibrated
+  AUC 0.6584 → 0.6700, KS 0.2470 → 0.2967.**
+- **Insurance: tried the same style of retune, it made AUC slightly worse
+  (0.7909 → 0.7882) — reverted.** Reported here rather than silently
+  discarded, because "we tried X and it didn't help" is itself real
+  information, and this project's standard throughout has been to report
+  real numbers, not just the ones that look good.
+- **BNPL: left untouched.** Already the strongest model (AUC 0.9357) on
+  the largest, cleanest real dataset; no evidence more tuning would help
+  enough to justify the risk, and insurance's regression was a caution
+  against tuning for its own sake.
+- No ceiling-breaking claims: an upload can now be *read* correctly and a
+  vertical can be *declared* with real confidence scoring shown, not
+  guessed in a black box — but "dead accurate" isn't a real bar for any
+  fraud/credit model, and these AUCs (0.67–0.94 depending on vertical) are
+  reported as exactly what they are.
+
+88 tests passing (5 new: detection case/spacing-insensitivity, fuzzy-match
+tolerance, the cross-vertical false-positive guard, canonicalization, and
+an end-to-end messy-upload-to-real-decision test).
+
 ## Post-Phase-5 — polish pass (2026-10-06)
 
 Small, low-risk refinements after the enterprise redesign, prompted by

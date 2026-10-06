@@ -17,8 +17,8 @@ correctness check, not a claim about real-world model performance.
 
 | Model | AUC | KS | Brier |
 |---|---|---|---|
-| lightgbm_raw | 0.6763 | 0.3 | 0.1576 |
-| lightgbm_calibrated (primary) | 0.6584 | 0.247 | 0.1148 |
+| lightgbm_raw | 0.6884 | 0.3553 | 0.1359 |
+| lightgbm_calibrated (primary) | 0.67 | 0.2967 | 0.1142 |
 | xgboost_baseline | 0.6658 | 0.3094 | 0.1727 |
 
 ## Confusion matrix at 0.5 threshold
@@ -27,15 +27,15 @@ correctness check, not a claim about real-world model performance.
 
 |  | pred: low risk | pred: high risk |
 |---|---|---|
-| actual: low risk | 736 | 123 |
-| actual: high risk | 86 | 55 |
+| actual: low risk | 772 | 87 |
+| actual: high risk | 95 | 46 |
 
 **lightgbm_calibrated (primary)**
 
 |  | pred: low risk | pred: high risk |
 |---|---|---|
-| actual: low risk | 853 | 6 |
-| actual: high risk | 136 | 5 |
+| actual: low risk | 855 | 4 |
+| actual: high risk | 139 | 2 |
 
 **xgboost_baseline**
 

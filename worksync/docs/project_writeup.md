@@ -60,13 +60,15 @@ recorded as the project went, not reconstructed afterward.
 
 | Vertical | Data | AUC (calibrated) | KS | Brier |
 |---|---|---|---|---|
-| Loan | Real (307,511 rows) | 0.7562 | 0.3885 | 0.0678 |
-| KYC/AML | Synthetic (5,000 rows) | 0.6584 | 0.2470 | 0.1148 |
+| Loan | Real (307,511 rows) + bureau.csv join | 0.7616 | 0.3953 | 0.0674 |
+| KYC/AML | Synthetic (5,000 rows) | 0.6700 | 0.2967 | 0.1142 |
 | Credit card/BNPL | Real (284,807 rows) | 0.9357 | 0.8433 | 0.0009 |
 | Insurance claims | Real (15,420 rows) | 0.7909 | 0.4979 | 0.0527 |
 
-69 automated tests pass, including the 9-test structural-parity suite, per-
-vertical unit and end-to-end tests, and Audit Agent tamper/replay tests.
+88 automated tests pass (grown from 69 at Phase 5 completion as the demo
+app gained upload-detection and canonicalization logic), including the
+9-test structural-parity suite, per-vertical unit and end-to-end tests,
+and Audit Agent tamper/replay tests.
 
 ## Key findings for the report
 
@@ -98,8 +100,11 @@ vertical unit and end-to-end tests, and Audit Agent tamper/replay tests.
   outstanding.
 - **Manager authority (bounded authority) is still the team's default
   proposal**, pending mentor sign-off (`docs/manager_authority.md`).
-- **No cross-source joins** (e.g. loan's `bureau.csv`, `previous_application.csv`)
-  — kept to the brief's "keep feature engineering simple" instruction.
+- **Loan joins `bureau.csv`** (credit-bureau history, aggregated per
+  applicant — a real AUC improvement, 0.756→0.762), but not
+  `previous_application.csv` / `POS_CASH_balance.csv` / etc. — a further
+  extension not yet taken, kept to the brief's "keep feature engineering
+  simple" instruction for everything beyond that one join.
 - **KYC/AML's label is synthetic** — its metrics are a pipeline-correctness
   check, not a real-world detection-performance claim.
 - **OCR / document-image processing** was out of scope (stretch goal per

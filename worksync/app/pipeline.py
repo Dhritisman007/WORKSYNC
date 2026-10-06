@@ -11,7 +11,9 @@ Orchestrator for a vertical.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Callable
 
@@ -220,12 +222,64 @@ def parse_uploaded_file(uploaded) -> pd.DataFrame:
     return pd.read_csv(uploaded)
 
 
+_FUZZY_THRESHOLD = 0.88  # SequenceMatcher ratio; empirically high enough to
+# catch typos/abbreviations without confusing two genuinely different
+# column names (verified against every vertical's own raw_columns in
+# test_pipeline_detection.py — no vertical's columns fuzzy-match another's).
+
+
+def _normalize_col(name: str) -> str:
+    """Case/whitespace/separator-insensitive form of a column name, so
+    "Amt Income Total", "amt_income_total" and "AMT_INCOME_TOTAL" are all
+    recognized as the same column."""
+    return re.sub(r"[\s\-]+", "_", str(name).strip().lower())
+
+
+def _match_columns(upload_columns: list[str], expected_columns: tuple[str, ...]) -> dict[str, str]:
+    """Maps each uploaded column name to the canonical expected column name
+    it matches, via exact-after-normalization first, then fuzzy matching
+    for near-misses (typos, minor abbreviations). Each canonical column is
+    claimed by at most one uploaded column. Returns {uploaded_name:
+    canonical_name} for matched columns only.
+    """
+    expected_by_norm = {_normalize_col(c): c for c in expected_columns}
+    mapping: dict[str, str] = {}
+    claimed: set[str] = set()
+
+    unmatched_uploads: list[str] = []
+    for col in upload_columns:
+        norm = _normalize_col(col)
+        canonical = expected_by_norm.get(norm)
+        if canonical and canonical not in claimed:
+            mapping[col] = canonical
+            claimed.add(canonical)
+        else:
+            unmatched_uploads.append(col)
+
+    remaining_expected = [c for c in expected_columns if c not in claimed]
+    for col in unmatched_uploads:
+        norm = _normalize_col(col)
+        best_canonical, best_score = None, 0.0
+        for canonical in remaining_expected:
+            score = SequenceMatcher(None, norm, _normalize_col(canonical)).ratio()
+            if score > best_score:
+                best_score, best_canonical = score, canonical
+        if best_canonical and best_score >= _FUZZY_THRESHOLD:
+            mapping[col] = best_canonical
+            claimed.add(best_canonical)
+            remaining_expected.remove(best_canonical)
+
+    return mapping
+
+
 @dataclass
 class VerticalMatch:
     key: str
     label: str
     coverage: float  # fraction of that vertical's expected raw columns present in the upload
     overlap: int
+    exact: int = 0
+    fuzzy: int = 0
 
 
 def detect_vertical(columns: list[str]) -> list[VerticalMatch]:
@@ -233,22 +287,44 @@ def detect_vertical(columns: list[str]) -> list[VerticalMatch]:
     is present in the uploaded file's headers, sorted best match first.
 
     This is a column-signature match, not a model: no training, no
-    ambiguity resolution beyond "which schema does this look like" — exact
-    header names are what every adapter already keys off (`row.get("AMT_
-    INCOME_TOTAL")` etc.), so a header match is a faithful proxy for "will
-    this adapter actually populate its features from this file."
+    ambiguity resolution beyond "which schema does this look like". Matching
+    is case/whitespace-insensitive and tolerates minor naming variation via
+    fuzzy matching (`_match_columns`) — a header match is a faithful proxy
+    for "will this adapter actually populate its features from this file"
+    specifically *because* `canonicalize_uploaded_columns` below uses the
+    exact same matching to rename the uploaded columns before the adapter
+    ever sees them, so detection and actual data consumption never disagree.
     """
-    upload_cols = set(columns)
     matches = []
     for key, factory in VERTICALS.items():
         spec = factory()
         if not spec.raw_columns:
             continue
-        overlap = upload_cols & set(spec.raw_columns)
-        coverage = len(overlap) / len(spec.raw_columns)
-        matches.append(VerticalMatch(key=key, label=spec.label, coverage=coverage, overlap=len(overlap)))
+        mapping = _match_columns(columns, spec.raw_columns)
+        exact = sum(
+            1 for up, canon in mapping.items() if _normalize_col(up) == _normalize_col(canon)
+        )
+        fuzzy = len(mapping) - exact
+        coverage = len(mapping) / len(spec.raw_columns)
+        matches.append(
+            VerticalMatch(key=key, label=spec.label, coverage=coverage, overlap=len(mapping), exact=exact, fuzzy=fuzzy)
+        )
     matches.sort(key=lambda m: (m.coverage, m.overlap), reverse=True)
     return matches
+
+
+def canonicalize_uploaded_columns(df: pd.DataFrame, vertical_key: str) -> pd.DataFrame:
+    """Renames an uploaded DataFrame's columns to the vertical's canonical
+    raw column names wherever `_match_columns` finds a match, so the
+    adapter's exact-case lookups (e.g. `row.get("AMT_INCOME_TOTAL")`)
+    succeed even when the upload used different casing, spacing, or a minor
+    naming variant. Columns with no match pass through unchanged (and are
+    simply ignored by the adapter, same as any other missing column)."""
+    spec = VERTICALS[vertical_key]()
+    if not spec.raw_columns:
+        return df
+    mapping = _match_columns(list(df.columns), spec.raw_columns)
+    return df.rename(columns=mapping)
 
 
 def _clean(text: str) -> str:
